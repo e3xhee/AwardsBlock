@@ -58,6 +58,7 @@ contract AwardDistributionRegistry {
     event AwardClosed(bytes32 indexed awardId, uint256 returnedAmount);
 
     error AwardAlreadyExists(bytes32 awardId);
+    error ClaimWindowNotEnded(bytes32 awardId, uint64 currentTime, uint64 claimEnd);
     error ClaimWindowNotActive(
         bytes32 awardId, uint64 currentTime, uint64 claimStart, uint64 claimEnd
     );
@@ -219,8 +220,30 @@ contract AwardDistributionRegistry {
         revert NotImplemented();
     }
 
-    function closeAward(bytes32) external pure {
-        revert NotImplemented();
+    function closeAward(bytes32 awardId) external {
+        Award storage award = awards[awardId];
+
+        if (award.organizer != msg.sender) {
+            revert UnauthorizedAwardOrganizer(awardId, msg.sender);
+        }
+        if (award.status != AwardStatus.Finalized && award.status != AwardStatus.Claiming) {
+            revert InvalidAwardStatus(awardId, uint8(award.status), uint8(AwardStatus.Finalized));
+        }
+
+        uint64 currentTime = uint64(block.timestamp);
+        if (currentTime < award.claimEnd) {
+            revert ClaimWindowNotEnded(awardId, currentTime, award.claimEnd);
+        }
+
+        uint256 returnedAmount = award.totalDeposited - award.totalClaimed;
+
+        award.status = AwardStatus.Closed;
+
+        if (returnedAmount > 0) {
+            IERC20(award.rewardToken).safeTransfer(msg.sender, returnedAmount);
+        }
+
+        emit AwardClosed(awardId, returnedAmount);
     }
 
     function pause() external pure {

@@ -4,7 +4,13 @@ pragma solidity ^0.8.26;
 import {AwardDistributionRegistry} from "../src/AwardDistributionRegistry.sol";
 import {MockUSDC} from "../src/MockUSDC.sol";
 
+interface Vm {
+    function warp(uint256 newTimestamp) external;
+}
+
 contract AwardDistributionRegistryTest {
+    Vm private constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
+
     AwardDistributionRegistry private registry;
 
     function setUp() public {
@@ -430,6 +436,97 @@ contract AwardDistributionRegistryTest {
         );
     }
 
+    function testCloseAwardReturnsUnclaimedRewardsAfterClaimWindowEnds() public {
+        bytes32 awardId = keccak256("award-close-unclaimed");
+        AwardClaimantProxy firstClaimant = new AwardClaimantProxy();
+        AwardClaimantProxy secondClaimant = new AwardClaimantProxy();
+
+        address[] memory recipients = new address[](2);
+        recipients[0] = address(firstClaimant);
+        recipients[1] = address(secondClaimant);
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 400_000000;
+        amounts[1] = 600_000000;
+        uint64 claimEnd = uint64(block.timestamp + 8 days);
+
+        MockUSDC token = prepareFinalizedAwardForRecipients(
+            awardId, recipients, amounts, uint64(block.timestamp), claimEnd
+        );
+
+        bool firstClaimSuccess = firstClaimant.tryClaim(registry, awardId);
+        require(firstClaimSuccess, "first claim failed");
+        require(token.balanceOf(address(registry)) == amounts[1], "registry remainder mismatch");
+
+        vm.warp(claimEnd);
+
+        registry.closeAward(awardId);
+
+        (,,,,,,,, uint256 totalClaimed,,,, AwardDistributionRegistry.AwardStatus status,) =
+            registry.awards(awardId);
+        require(totalClaimed == amounts[0], "total claimed mismatch");
+        require(status == AwardDistributionRegistry.AwardStatus.Closed, "status should be closed");
+        require(token.balanceOf(address(registry)) == 0, "registry balance should be empty");
+        require(token.balanceOf(address(this)) == amounts[1], "organizer refund mismatch");
+    }
+
+    function testCloseAwardRejectsNonOrganizer() public {
+        bytes32 awardId = keccak256("award-close-non-organizer");
+        AwardClaimantProxy claimant = new AwardClaimantProxy();
+
+        prepareFinalizedAwardForRecipient(
+            awardId, address(claimant), 400_000000, 0, uint64(block.timestamp)
+        );
+
+        AwardCloserProxy proxy = new AwardCloserProxy();
+        (bool success, bytes memory errorData) = proxy.tryCloseAward(registry, awardId);
+
+        require(!success, "non organizer close succeeded");
+        require(
+            errorSelector(errorData)
+                == bytes4(keccak256("UnauthorizedAwardOrganizer(bytes32,address)")),
+            "wrong close organizer error"
+        );
+    }
+
+    function testCloseAwardRejectsBeforeClaimWindowEnds() public {
+        bytes32 awardId = keccak256("award-close-before-window-end");
+        AwardClaimantProxy claimant = new AwardClaimantProxy();
+
+        prepareFinalizedAwardForRecipient(
+            awardId,
+            address(claimant),
+            400_000000,
+            uint64(block.timestamp),
+            uint64(block.timestamp + 8 days)
+        );
+
+        (bool success, bytes memory errorData) =
+            address(registry).call(abi.encodeCall(registry.closeAward, (awardId)));
+
+        require(!success, "early close succeeded");
+        require(
+            errorSelector(errorData)
+                == bytes4(keccak256("ClaimWindowNotEnded(bytes32,uint64,uint64)")),
+            "wrong early close error"
+        );
+    }
+
+    function testCloseAwardRejectsAwardThatIsNotFinalizedOrClaiming() public {
+        bytes32 awardId = keccak256("award-close-draft");
+        createValidAward(awardId);
+
+        (bool success, bytes memory errorData) =
+            address(registry).call(abi.encodeCall(registry.closeAward, (awardId)));
+
+        require(!success, "draft award close succeeded");
+        require(
+            errorSelector(errorData)
+                == bytes4(keccak256("InvalidAwardStatus(bytes32,uint8,uint8)")),
+            "wrong close status error"
+        );
+    }
+
     function prepareFundedAward(bytes32 awardId, uint256 totalAmount)
         private
         returns (MockUSDC token)
@@ -579,5 +676,14 @@ contract AwardClaimantProxy {
         returns (bool, bytes memory)
     {
         return address(registry).call(abi.encodeCall(registry.claim, (awardId)));
+    }
+}
+
+contract AwardCloserProxy {
+    function tryCloseAward(AwardDistributionRegistry registry, bytes32 awardId)
+        external
+        returns (bool, bytes memory)
+    {
+        return address(registry).call(abi.encodeCall(registry.closeAward, (awardId)));
     }
 }
