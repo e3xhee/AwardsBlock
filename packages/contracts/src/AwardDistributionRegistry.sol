@@ -206,6 +206,9 @@ contract AwardDistributionRegistry {
         if (award.status == AwardStatus.Finalized) {
             award.status = AwardStatus.Claiming;
         }
+        if (award.totalClaimed >= award.totalAllocated) {
+            award.status = AwardStatus.Completed;
+        }
 
         IERC20(award.rewardToken).safeTransfer(msg.sender, amount);
 

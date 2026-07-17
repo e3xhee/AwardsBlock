@@ -385,6 +385,51 @@ contract AwardDistributionRegistryTest {
         );
     }
 
+    function testClaimCompletesAwardAfterFinalRecipientClaims() public {
+        bytes32 awardId = keccak256("award-claim-completed");
+        AwardClaimantProxy firstClaimant = new AwardClaimantProxy();
+        AwardClaimantProxy secondClaimant = new AwardClaimantProxy();
+
+        address[] memory recipients = new address[](2);
+        recipients[0] = address(firstClaimant);
+        recipients[1] = address(secondClaimant);
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 400_000000;
+        amounts[1] = 600_000000;
+
+        prepareFinalizedAwardForRecipients(
+            awardId, recipients, amounts, uint64(block.timestamp), uint64(block.timestamp + 8 days)
+        );
+
+        bool firstClaimSuccess = firstClaimant.tryClaim(registry, awardId);
+        (
+            ,,,,,,,,
+            uint256 firstTotalClaimed,,,,
+            AwardDistributionRegistry.AwardStatus firstStatus,
+        ) = registry.awards(awardId);
+        bool secondClaimSuccess = secondClaimant.tryClaim(registry, awardId);
+
+        (
+            ,,,,,,
+            uint256 totalAllocated,,
+            uint256 totalClaimed,,,,
+            AwardDistributionRegistry.AwardStatus status,
+        ) = registry.awards(awardId);
+
+        require(firstClaimSuccess, "first claim failed");
+        require(
+            firstStatus == AwardDistributionRegistry.AwardStatus.Claiming,
+            "status should be claiming after first claim"
+        );
+        require(firstTotalClaimed == amounts[0], "first total claimed mismatch");
+        require(secondClaimSuccess, "second claim failed");
+        require(totalClaimed == totalAllocated, "final total claimed mismatch");
+        require(
+            status == AwardDistributionRegistry.AwardStatus.Completed, "status should be completed"
+        );
+    }
+
     function prepareFundedAward(bytes32 awardId, uint256 totalAmount)
         private
         returns (MockUSDC token)
@@ -439,6 +484,28 @@ contract AwardDistributionRegistryTest {
         uint64 claimEnd
     ) private returns (MockUSDC token) {
         token = prepareFundedAwardForRecipient(awardId, recipient, allocation, claimStart, claimEnd);
+        registry.finalizeAward(awardId);
+    }
+
+    function prepareFinalizedAwardForRecipients(
+        bytes32 awardId,
+        address[] memory recipients,
+        uint256[] memory amounts,
+        uint64 claimStart,
+        uint64 claimEnd
+    ) private returns (MockUSDC token) {
+        uint256 totalAmount;
+        for (uint256 index = 0; index < amounts.length; index++) {
+            totalAmount += amounts[index];
+        }
+
+        token = new MockUSDC();
+        createAwardWithTokenAndClaimWindow(awardId, address(token), claimStart, claimEnd);
+
+        registry.setRecipients(awardId, recipients, amounts);
+        token.mint(address(this), totalAmount);
+        token.approve(address(registry), totalAmount);
+        registry.fundAward(awardId, totalAmount);
         registry.finalizeAward(awardId);
     }
 
