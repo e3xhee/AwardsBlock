@@ -43,7 +43,14 @@ contract AwardDistributionRegistry {
     event AwardSuperseded(bytes32 indexed oldAwardId, bytes32 indexed newAwardId, bytes32 reasonHash);
     event AwardClosed(bytes32 indexed awardId, uint256 returnedAmount);
 
+    error AwardAlreadyExists(bytes32 awardId);
+    error InvalidClaimWindow(uint64 claimStart, uint64 claimEnd);
+    error InvalidRecipientAllocation();
+    error InvalidRecipientAddress();
     error NotImplemented();
+    error RecipientArrayLengthMismatch();
+    error RecipientAlreadyAssigned(address recipient);
+    error UnauthorizedAwardOrganizer(bytes32 awardId, address caller);
 
     function createAward(
         bytes32 awardId,
@@ -55,6 +62,13 @@ contract AwardDistributionRegistry {
         uint64 claimStart,
         uint64 claimEnd
     ) external {
+        if (awards[awardId].organizer != address(0)) {
+            revert AwardAlreadyExists(awardId);
+        }
+        if (claimStart >= claimEnd) {
+            revert InvalidClaimWindow(claimStart, claimEnd);
+        }
+
         awards[awardId] = Award({
             organizer: msg.sender,
             eventId: eventId,
@@ -75,8 +89,41 @@ contract AwardDistributionRegistry {
         emit AwardCreated(awardId, eventId, projectId, msg.sender);
     }
 
-    function setRecipients(bytes32, address[] calldata, uint256[] calldata) external pure {
-        revert NotImplemented();
+    function setRecipients(bytes32 awardId, address[] calldata recipients, uint256[] calldata amounts)
+        external
+    {
+        Award storage award = awards[awardId];
+
+        if (award.organizer != msg.sender) {
+            revert UnauthorizedAwardOrganizer(awardId, msg.sender);
+        }
+        if (recipients.length != amounts.length) {
+            revert RecipientArrayLengthMismatch();
+        }
+
+        uint256 totalAllocated;
+
+        for (uint256 index = 0; index < recipients.length; index++) {
+            if (recipients[index] == address(0)) {
+                revert InvalidRecipientAddress();
+            }
+            if (amounts[index] == 0) {
+                revert InvalidRecipientAllocation();
+            }
+            for (uint256 previousIndex = 0; previousIndex < index; previousIndex++) {
+                if (recipients[previousIndex] == recipients[index]) {
+                    revert RecipientAlreadyAssigned(recipients[index]);
+                }
+            }
+
+            allocations[awardId][recipients[index]] = amounts[index];
+            totalAllocated += amounts[index];
+        }
+
+        award.totalAllocated = totalAllocated;
+        award.status = AwardStatus.ReadyToFund;
+
+        emit RecipientsAssigned(awardId, recipients.length, totalAllocated);
     }
 
     function fundAward(bytes32, uint256) external pure {
