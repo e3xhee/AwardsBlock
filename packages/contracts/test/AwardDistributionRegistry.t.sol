@@ -189,23 +189,9 @@ contract AwardDistributionRegistryTest {
 
     function testFundAwardTransfersApprovedRewardTokens() public {
         bytes32 awardId = keccak256("award-funded");
-        MockUSDC token = new MockUSDC();
-        createAwardWithToken(awardId, address(token));
-
-        address[] memory recipients = new address[](2);
-        recipients[0] = address(0xA11CE);
-        recipients[1] = address(0xB0B);
-
-        uint256[] memory amounts = new uint256[](2);
-        amounts[0] = 400_000000;
-        amounts[1] = 600_000000;
         uint256 totalAmount = 1_000_000000;
 
-        registry.setRecipients(awardId, recipients, amounts);
-        token.mint(address(this), totalAmount);
-        token.approve(address(registry), totalAmount);
-
-        registry.fundAward(awardId, totalAmount);
+        MockUSDC token = prepareFundedAward(awardId, totalAmount);
 
         require(
             token.balanceOf(address(registry)) == totalAmount, "registry token balance mismatch"
@@ -215,6 +201,73 @@ contract AwardDistributionRegistryTest {
             registry.awards(awardId);
         require(totalDeposited == totalAmount, "total deposited mismatch");
         require(status == AwardDistributionRegistry.AwardStatus.Funded, "status should be funded");
+    }
+
+    function testFinalizeAwardMarksFundedAwardFinalized() public {
+        bytes32 awardId = keccak256("award-finalized");
+        prepareFundedAward(awardId, 1_000_000000);
+
+        uint64 expectedFinalizedAt = uint64(block.timestamp);
+
+        registry.finalizeAward(awardId);
+
+        (,,,,,,,,,,, uint64 finalizedAt, AwardDistributionRegistry.AwardStatus status,) =
+            registry.awards(awardId);
+        require(finalizedAt == expectedFinalizedAt, "finalized timestamp mismatch");
+        require(
+            status == AwardDistributionRegistry.AwardStatus.Finalized, "status should be finalized"
+        );
+    }
+
+    function testFinalizeAwardRejectsNonOrganizer() public {
+        bytes32 awardId = keccak256("award-finalize-non-organizer");
+        prepareFundedAward(awardId, 1_000_000000);
+
+        AwardFinalizerProxy proxy = new AwardFinalizerProxy();
+        (bool success, bytes memory errorData) = proxy.tryFinalizeAward(registry, awardId);
+
+        require(!success, "non organizer finalize succeeded");
+        require(
+            errorSelector(errorData)
+                == bytes4(keccak256("UnauthorizedAwardOrganizer(bytes32,address)")),
+            "wrong finalize organizer error"
+        );
+    }
+
+    function testFinalizeAwardRejectsAwardThatIsNotFunded() public {
+        bytes32 awardId = keccak256("award-finalize-draft");
+        createValidAward(awardId);
+
+        (bool success, bytes memory errorData) =
+            address(registry).call(abi.encodeCall(registry.finalizeAward, (awardId)));
+
+        require(!success, "draft award finalize succeeded");
+        require(
+            errorSelector(errorData)
+                == bytes4(keccak256("InvalidAwardStatus(bytes32,uint8,uint8)")),
+            "wrong finalize status error"
+        );
+    }
+
+    function prepareFundedAward(bytes32 awardId, uint256 totalAmount)
+        private
+        returns (MockUSDC token)
+    {
+        token = new MockUSDC();
+        createAwardWithToken(awardId, address(token));
+
+        address[] memory recipients = new address[](2);
+        recipients[0] = address(0xA11CE);
+        recipients[1] = address(0xB0B);
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 400_000000;
+        amounts[1] = totalAmount - amounts[0];
+
+        registry.setRecipients(awardId, recipients, amounts);
+        token.mint(address(this), totalAmount);
+        token.approve(address(registry), totalAmount);
+        registry.fundAward(awardId, totalAmount);
     }
 
     function createValidAward(bytes32 awardId) private {
@@ -253,5 +306,14 @@ contract RecipientSetterProxy {
         (bool success,) = address(registry)
             .call(abi.encodeCall(registry.setRecipients, (awardId, recipients, amounts)));
         return success;
+    }
+}
+
+contract AwardFinalizerProxy {
+    function tryFinalizeAward(AwardDistributionRegistry registry, bytes32 awardId)
+        external
+        returns (bool, bytes memory)
+    {
+        return address(registry).call(abi.encodeCall(registry.finalizeAward, (awardId)));
     }
 }

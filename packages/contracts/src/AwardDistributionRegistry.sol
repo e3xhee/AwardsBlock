@@ -58,6 +58,7 @@ contract AwardDistributionRegistry {
     event AwardClosed(bytes32 indexed awardId, uint256 returnedAmount);
 
     error AwardAlreadyExists(bytes32 awardId);
+    error InvalidAwardStatus(bytes32 awardId, uint8 currentStatus, uint8 requiredStatus);
     error InvalidClaimWindow(uint64 claimStart, uint64 claimEnd);
     error InvalidRecipientAllocation();
     error InvalidRecipientAddress();
@@ -159,8 +160,20 @@ contract AwardDistributionRegistry {
         emit AwardFunded(awardId, award.rewardToken, amount);
     }
 
-    function finalizeAward(bytes32) external pure {
-        revert NotImplemented();
+    function finalizeAward(bytes32 awardId) external {
+        Award storage award = awards[awardId];
+
+        if (award.organizer != msg.sender) {
+            revert UnauthorizedAwardOrganizer(awardId, msg.sender);
+        }
+        if (award.status != AwardStatus.Funded) {
+            revert InvalidAwardStatus(awardId, uint8(award.status), uint8(AwardStatus.Funded));
+        }
+
+        award.finalizedAt = uint64(block.timestamp);
+        award.status = AwardStatus.Finalized;
+
+        emit AwardFinalized(awardId, award.metadataHash, award.totalAllocated);
     }
 
     function claim(bytes32) external pure {
