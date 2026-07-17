@@ -58,6 +58,7 @@ contract AwardDistributionRegistry {
     event AwardClosed(bytes32 indexed awardId, uint256 returnedAmount);
 
     error AwardAlreadyExists(bytes32 awardId);
+    error AwardNotFound(bytes32 awardId);
     error ClaimWindowNotEnded(bytes32 awardId, uint64 currentTime, uint64 claimEnd);
     error ClaimWindowNotActive(
         bytes32 awardId, uint64 currentTime, uint64 claimStart, uint64 claimEnd
@@ -216,8 +217,27 @@ contract AwardDistributionRegistry {
         emit RewardClaimed(awardId, msg.sender, amount);
     }
 
-    function supersedeAward(bytes32, bytes32, bytes32) external pure {
-        revert NotImplemented();
+    function supersedeAward(bytes32 oldAwardId, bytes32 newAwardId, bytes32 reasonHash) external {
+        Award storage oldAward = awards[oldAwardId];
+        Award storage newAward = awards[newAwardId];
+
+        if (oldAward.organizer == address(0)) {
+            revert AwardNotFound(oldAwardId);
+        }
+        if (newAward.organizer == address(0)) {
+            revert AwardNotFound(newAwardId);
+        }
+        if (oldAward.organizer != msg.sender) {
+            revert UnauthorizedAwardOrganizer(oldAwardId, msg.sender);
+        }
+        if (newAward.organizer != msg.sender) {
+            revert UnauthorizedAwardOrganizer(newAwardId, msg.sender);
+        }
+
+        oldAward.status = AwardStatus.Superseded;
+        oldAward.supersededBy = newAwardId;
+
+        emit AwardSuperseded(oldAwardId, newAwardId, reasonHash);
     }
 
     function closeAward(bytes32 awardId) external {

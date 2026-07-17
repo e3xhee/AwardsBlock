@@ -527,6 +527,69 @@ contract AwardDistributionRegistryTest {
         );
     }
 
+    function testSupersedeAwardLinksOldAwardToReplacement() public {
+        bytes32 oldAwardId = keccak256("award-supersede-old");
+        bytes32 newAwardId = keccak256("award-supersede-new");
+        bytes32 reasonHash = keccak256("incorrect recipients");
+
+        createValidAward(oldAwardId);
+        createValidAward(newAwardId);
+
+        registry.supersedeAward(oldAwardId, newAwardId, reasonHash);
+
+        (,,,,,,,,,,,, AwardDistributionRegistry.AwardStatus oldStatus, bytes32 supersededBy) =
+            registry.awards(oldAwardId);
+        (,,,,,,,,,,,, AwardDistributionRegistry.AwardStatus newStatus,) =
+            registry.awards(newAwardId);
+
+        require(
+            oldStatus == AwardDistributionRegistry.AwardStatus.Superseded, "old status mismatch"
+        );
+        require(supersededBy == newAwardId, "replacement award mismatch");
+        require(
+            newStatus == AwardDistributionRegistry.AwardStatus.Draft, "new award status changed"
+        );
+    }
+
+    function testSupersedeAwardRejectsNonOrganizer() public {
+        bytes32 oldAwardId = keccak256("award-supersede-non-organizer-old");
+        bytes32 newAwardId = keccak256("award-supersede-non-organizer-new");
+        bytes32 reasonHash = keccak256("incorrect metadata");
+
+        createValidAward(oldAwardId);
+        createValidAward(newAwardId);
+
+        AwardSupersederProxy proxy = new AwardSupersederProxy();
+        (bool success, bytes memory errorData) =
+            proxy.trySupersedeAward(registry, oldAwardId, newAwardId, reasonHash);
+
+        require(!success, "non organizer supersede succeeded");
+        require(
+            errorSelector(errorData)
+                == bytes4(keccak256("UnauthorizedAwardOrganizer(bytes32,address)")),
+            "wrong supersede organizer error"
+        );
+    }
+
+    function testSupersedeAwardRejectsMissingReplacementAward() public {
+        bytes32 oldAwardId = keccak256("award-supersede-missing-new-old");
+        bytes32 missingNewAwardId = keccak256("award-supersede-missing-new");
+        bytes32 reasonHash = keccak256("incorrect reward token");
+
+        createValidAward(oldAwardId);
+
+        (bool success, bytes memory errorData) = address(registry)
+            .call(
+                abi.encodeCall(registry.supersedeAward, (oldAwardId, missingNewAwardId, reasonHash))
+            );
+
+        require(!success, "missing replacement supersede succeeded");
+        require(
+            errorSelector(errorData) == bytes4(keccak256("AwardNotFound(bytes32)")),
+            "wrong missing replacement error"
+        );
+    }
+
     function prepareFundedAward(bytes32 awardId, uint256 totalAmount)
         private
         returns (MockUSDC token)
@@ -685,5 +748,17 @@ contract AwardCloserProxy {
         returns (bool, bytes memory)
     {
         return address(registry).call(abi.encodeCall(registry.closeAward, (awardId)));
+    }
+}
+
+contract AwardSupersederProxy {
+    function trySupersedeAward(
+        AwardDistributionRegistry registry,
+        bytes32 oldAwardId,
+        bytes32 newAwardId,
+        bytes32 reasonHash
+    ) external returns (bool, bytes memory) {
+        return address(registry)
+            .call(abi.encodeCall(registry.supersedeAward, (oldAwardId, newAwardId, reasonHash)));
     }
 }
