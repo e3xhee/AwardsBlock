@@ -7,6 +7,9 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 contract AwardDistributionRegistry {
     using SafeERC20 for IERC20;
 
+    address public immutable owner;
+    bool public paused;
+
     enum AwardStatus {
         Draft,
         AwaitingRecipients,
@@ -56,6 +59,8 @@ contract AwardDistributionRegistry {
         bytes32 indexed oldAwardId, bytes32 indexed newAwardId, bytes32 reasonHash
     );
     event AwardClosed(bytes32 indexed awardId, uint256 returnedAmount);
+    event Paused(address indexed account);
+    event Unpaused(address indexed account);
 
     error AwardAlreadyExists(bytes32 awardId);
     error AwardNotFound(bytes32 awardId);
@@ -72,7 +77,20 @@ contract AwardDistributionRegistry {
     error RecipientAlreadyAssigned(address recipient);
     error RecipientNotAllocated(bytes32 awardId, address recipient);
     error RewardAlreadyClaimed(bytes32 awardId, address recipient);
+    error ContractPaused();
+    error UnauthorizedOwner(address caller);
     error UnauthorizedAwardOrganizer(bytes32 awardId, address caller);
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    modifier whenNotPaused() {
+        if (paused) {
+            revert ContractPaused();
+        }
+        _;
+    }
 
     function createAward(
         bytes32 awardId,
@@ -150,7 +168,7 @@ contract AwardDistributionRegistry {
         emit RecipientsAssigned(awardId, recipients.length, totalAllocated);
     }
 
-    function fundAward(bytes32 awardId, uint256 amount) external {
+    function fundAward(bytes32 awardId, uint256 amount) external whenNotPaused {
         Award storage award = awards[awardId];
 
         if (award.organizer != msg.sender) {
@@ -167,7 +185,7 @@ contract AwardDistributionRegistry {
         emit AwardFunded(awardId, award.rewardToken, amount);
     }
 
-    function finalizeAward(bytes32 awardId) external {
+    function finalizeAward(bytes32 awardId) external whenNotPaused {
         Award storage award = awards[awardId];
 
         if (award.organizer != msg.sender) {
@@ -183,7 +201,7 @@ contract AwardDistributionRegistry {
         emit AwardFinalized(awardId, award.metadataHash, award.totalAllocated);
     }
 
-    function claim(bytes32 awardId) external {
+    function claim(bytes32 awardId) external whenNotPaused {
         Award storage award = awards[awardId];
 
         if (award.status != AwardStatus.Finalized && award.status != AwardStatus.Claiming) {
@@ -217,7 +235,10 @@ contract AwardDistributionRegistry {
         emit RewardClaimed(awardId, msg.sender, amount);
     }
 
-    function supersedeAward(bytes32 oldAwardId, bytes32 newAwardId, bytes32 reasonHash) external {
+    function supersedeAward(bytes32 oldAwardId, bytes32 newAwardId, bytes32 reasonHash)
+        external
+        whenNotPaused
+    {
         Award storage oldAward = awards[oldAwardId];
         Award storage newAward = awards[newAwardId];
 
@@ -240,7 +261,7 @@ contract AwardDistributionRegistry {
         emit AwardSuperseded(oldAwardId, newAwardId, reasonHash);
     }
 
-    function closeAward(bytes32 awardId) external {
+    function closeAward(bytes32 awardId) external whenNotPaused {
         Award storage award = awards[awardId];
 
         if (award.organizer != msg.sender) {
@@ -266,11 +287,21 @@ contract AwardDistributionRegistry {
         emit AwardClosed(awardId, returnedAmount);
     }
 
-    function pause() external pure {
-        revert NotImplemented();
+    function pause() external {
+        if (msg.sender != owner) {
+            revert UnauthorizedOwner(msg.sender);
+        }
+
+        paused = true;
+        emit Paused(msg.sender);
     }
 
-    function unpause() external pure {
-        revert NotImplemented();
+    function unpause() external {
+        if (msg.sender != owner) {
+            revert UnauthorizedOwner(msg.sender);
+        }
+
+        paused = false;
+        emit Unpaused(msg.sender);
     }
 }

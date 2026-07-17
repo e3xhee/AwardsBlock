@@ -590,6 +590,156 @@ contract AwardDistributionRegistryTest {
         );
     }
 
+    function testPauseBlocksRewardClaims() public {
+        bytes32 awardId = keccak256("award-pause-claim");
+        AwardClaimantProxy claimant = new AwardClaimantProxy();
+
+        prepareFinalizedAwardForRecipient(
+            awardId,
+            address(claimant),
+            400_000000,
+            uint64(block.timestamp),
+            uint64(block.timestamp + 8 days)
+        );
+
+        registry.pause();
+
+        (bool success, bytes memory errorData) = claimant.tryClaimWithError(registry, awardId);
+
+        require(!success, "paused claim succeeded");
+        require(
+            errorSelector(errorData) == bytes4(keccak256("ContractPaused()")),
+            "wrong paused claim error"
+        );
+    }
+
+    function testUnpauseRestoresRewardClaims() public {
+        bytes32 awardId = keccak256("award-unpause-claim");
+        AwardClaimantProxy claimant = new AwardClaimantProxy();
+
+        prepareFinalizedAwardForRecipient(
+            awardId,
+            address(claimant),
+            400_000000,
+            uint64(block.timestamp),
+            uint64(block.timestamp + 8 days)
+        );
+
+        registry.pause();
+        registry.unpause();
+
+        bool success = claimant.tryClaim(registry, awardId);
+
+        require(success, "unpaused claim failed");
+    }
+
+    function testPauseRejectsNonOwner() public {
+        AwardPauseProxy proxy = new AwardPauseProxy();
+
+        (bool success, bytes memory errorData) = proxy.tryPause(registry);
+
+        require(!success, "non owner pause succeeded");
+        require(
+            errorSelector(errorData) == bytes4(keccak256("UnauthorizedOwner(address)")),
+            "wrong pause owner error"
+        );
+    }
+
+    function testUnpauseRejectsNonOwner() public {
+        registry.pause();
+
+        AwardPauseProxy proxy = new AwardPauseProxy();
+        (bool success, bytes memory errorData) = proxy.tryUnpause(registry);
+
+        require(!success, "non owner unpause succeeded");
+        require(
+            errorSelector(errorData) == bytes4(keccak256("UnauthorizedOwner(address)")),
+            "wrong unpause owner error"
+        );
+    }
+
+    function testPauseBlocksAwardFunding() public {
+        bytes32 awardId = keccak256("award-pause-fund");
+        MockUSDC token = new MockUSDC();
+        createAwardWithToken(awardId, address(token));
+
+        address[] memory recipients = new address[](1);
+        recipients[0] = address(0xA11CE);
+
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = 400_000000;
+
+        registry.setRecipients(awardId, recipients, amounts);
+        token.mint(address(this), amounts[0]);
+        token.approve(address(registry), amounts[0]);
+        registry.pause();
+
+        (bool success, bytes memory errorData) =
+            address(registry).call(abi.encodeCall(registry.fundAward, (awardId, amounts[0])));
+
+        require(!success, "paused fund succeeded");
+        require(
+            errorSelector(errorData) == bytes4(keccak256("ContractPaused()")),
+            "wrong paused fund error"
+        );
+    }
+
+    function testPauseBlocksAwardFinalization() public {
+        bytes32 awardId = keccak256("award-pause-finalize");
+        prepareFundedAward(awardId, 1_000_000000);
+
+        registry.pause();
+
+        (bool success, bytes memory errorData) =
+            address(registry).call(abi.encodeCall(registry.finalizeAward, (awardId)));
+
+        require(!success, "paused finalize succeeded");
+        require(
+            errorSelector(errorData) == bytes4(keccak256("ContractPaused()")),
+            "wrong paused finalize error"
+        );
+    }
+
+    function testPauseBlocksAwardClosure() public {
+        bytes32 awardId = keccak256("award-pause-close");
+        AwardClaimantProxy claimant = new AwardClaimantProxy();
+        uint64 claimEnd = uint64(block.timestamp + 8 days);
+
+        prepareFinalizedAwardForRecipient(
+            awardId, address(claimant), 400_000000, uint64(block.timestamp), claimEnd
+        );
+        vm.warp(claimEnd);
+        registry.pause();
+
+        (bool success, bytes memory errorData) =
+            address(registry).call(abi.encodeCall(registry.closeAward, (awardId)));
+
+        require(!success, "paused close succeeded");
+        require(
+            errorSelector(errorData) == bytes4(keccak256("ContractPaused()")),
+            "wrong paused close error"
+        );
+    }
+
+    function testPauseBlocksAwardSuperseding() public {
+        bytes32 oldAwardId = keccak256("award-pause-supersede-old");
+        bytes32 newAwardId = keccak256("award-pause-supersede-new");
+        bytes32 reasonHash = keccak256("pause supersede");
+
+        createValidAward(oldAwardId);
+        createValidAward(newAwardId);
+        registry.pause();
+
+        (bool success, bytes memory errorData) = address(registry)
+            .call(abi.encodeCall(registry.supersedeAward, (oldAwardId, newAwardId, reasonHash)));
+
+        require(!success, "paused supersede succeeded");
+        require(
+            errorSelector(errorData) == bytes4(keccak256("ContractPaused()")),
+            "wrong paused supersede error"
+        );
+    }
+
     function prepareFundedAward(bytes32 awardId, uint256 totalAmount)
         private
         returns (MockUSDC token)
@@ -760,5 +910,15 @@ contract AwardSupersederProxy {
     ) external returns (bool, bytes memory) {
         return address(registry)
             .call(abi.encodeCall(registry.supersedeAward, (oldAwardId, newAwardId, reasonHash)));
+    }
+}
+
+contract AwardPauseProxy {
+    function tryPause(AwardDistributionRegistry registry) external returns (bool, bytes memory) {
+        return address(registry).call(abi.encodeCall(registry.pause, ()));
+    }
+
+    function tryUnpause(AwardDistributionRegistry registry) external returns (bool, bytes memory) {
+        return address(registry).call(abi.encodeCall(registry.unpause, ()));
     }
 }
