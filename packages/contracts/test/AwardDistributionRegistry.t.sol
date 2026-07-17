@@ -2,6 +2,7 @@
 pragma solidity ^0.8.26;
 
 import {AwardDistributionRegistry} from "../src/AwardDistributionRegistry.sol";
+import {MockUSDC} from "../src/MockUSDC.sol";
 
 contract AwardDistributionRegistryTest {
     AwardDistributionRegistry private registry;
@@ -28,41 +29,43 @@ contract AwardDistributionRegistryTest {
 
         createValidAward(awardId);
 
-        (bool success,) = address(registry).call(
-            abi.encodeCall(
-                registry.createAward,
-                (
-                    awardId,
-                    keccak256("event-2"),
-                    keccak256("project-2"),
-                    "https://awardblock.local/metadata/award-2.json",
-                    keccak256("metadata-2"),
-                    address(0xCAFE),
-                    uint64(block.timestamp + 1 days),
-                    uint64(block.timestamp + 8 days)
+        (bool success,) = address(registry)
+            .call(
+                abi.encodeCall(
+                    registry.createAward,
+                    (
+                        awardId,
+                        keccak256("event-2"),
+                        keccak256("project-2"),
+                        "https://awardblock.local/metadata/award-2.json",
+                        keccak256("metadata-2"),
+                        address(0xCAFE),
+                        uint64(block.timestamp + 1 days),
+                        uint64(block.timestamp + 8 days)
+                    )
                 )
-            )
-        );
+            );
 
         require(!success, "duplicate create succeeded");
     }
 
     function testCreateAwardRejectsInvalidClaimWindow() public {
-        (bool success,) = address(registry).call(
-            abi.encodeCall(
-                registry.createAward,
-                (
-                    keccak256("award-invalid-window"),
-                    keccak256("event-1"),
-                    keccak256("project-1"),
-                    "https://awardblock.local/metadata/award-invalid-window.json",
-                    keccak256("metadata"),
-                    address(0xCAFE),
-                    uint64(block.timestamp + 8 days),
-                    uint64(block.timestamp + 1 days)
+        (bool success,) = address(registry)
+            .call(
+                abi.encodeCall(
+                    registry.createAward,
+                    (
+                        keccak256("award-invalid-window"),
+                        keccak256("event-1"),
+                        keccak256("project-1"),
+                        "https://awardblock.local/metadata/award-invalid-window.json",
+                        keccak256("metadata"),
+                        address(0xCAFE),
+                        uint64(block.timestamp + 8 days),
+                        uint64(block.timestamp + 1 days)
+                    )
                 )
-            )
-        );
+            );
 
         require(!success, "invalid claim window succeeded");
     }
@@ -81,8 +84,12 @@ contract AwardDistributionRegistryTest {
 
         registry.setRecipients(awardId, recipients, amounts);
 
-        require(registry.allocations(awardId, recipients[0]) == amounts[0], "first allocation mismatch");
-        require(registry.allocations(awardId, recipients[1]) == amounts[1], "second allocation mismatch");
+        require(
+            registry.allocations(awardId, recipients[0]) == amounts[0], "first allocation mismatch"
+        );
+        require(
+            registry.allocations(awardId, recipients[1]) == amounts[1], "second allocation mismatch"
+        );
 
         (,,,,,, uint256 totalAllocated,,,,,, AwardDistributionRegistry.AwardStatus status,) =
             registry.awards(awardId);
@@ -104,9 +111,8 @@ contract AwardDistributionRegistryTest {
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = 400_000000;
 
-        (bool success, bytes memory errorData) = address(registry).call(
-            abi.encodeCall(registry.setRecipients, (awardId, recipients, amounts))
-        );
+        (bool success, bytes memory errorData) = address(registry)
+            .call(abi.encodeCall(registry.setRecipients, (awardId, recipients, amounts)));
 
         require(!success, "mismatched arrays succeeded");
         require(
@@ -125,9 +131,8 @@ contract AwardDistributionRegistryTest {
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = 400_000000;
 
-        (bool success,) = address(registry).call(
-            abi.encodeCall(registry.setRecipients, (awardId, recipients, amounts))
-        );
+        (bool success,) = address(registry)
+            .call(abi.encodeCall(registry.setRecipients, (awardId, recipients, amounts)));
 
         require(!success, "zero address recipient succeeded");
     }
@@ -142,9 +147,8 @@ contract AwardDistributionRegistryTest {
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = 0;
 
-        (bool success,) = address(registry).call(
-            abi.encodeCall(registry.setRecipients, (awardId, recipients, amounts))
-        );
+        (bool success,) = address(registry)
+            .call(abi.encodeCall(registry.setRecipients, (awardId, recipients, amounts)));
 
         require(!success, "zero allocation succeeded");
     }
@@ -161,9 +165,8 @@ contract AwardDistributionRegistryTest {
         amounts[0] = 400_000000;
         amounts[1] = 600_000000;
 
-        (bool success,) = address(registry).call(
-            abi.encodeCall(registry.setRecipients, (awardId, recipients, amounts))
-        );
+        (bool success,) = address(registry)
+            .call(abi.encodeCall(registry.setRecipients, (awardId, recipients, amounts)));
 
         require(!success, "duplicate recipient succeeded");
     }
@@ -184,14 +187,48 @@ contract AwardDistributionRegistryTest {
         require(!success, "non organizer set recipients succeeded");
     }
 
+    function testFundAwardTransfersApprovedRewardTokens() public {
+        bytes32 awardId = keccak256("award-funded");
+        MockUSDC token = new MockUSDC();
+        createAwardWithToken(awardId, address(token));
+
+        address[] memory recipients = new address[](2);
+        recipients[0] = address(0xA11CE);
+        recipients[1] = address(0xB0B);
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 400_000000;
+        amounts[1] = 600_000000;
+        uint256 totalAmount = 1_000_000000;
+
+        registry.setRecipients(awardId, recipients, amounts);
+        token.mint(address(this), totalAmount);
+        token.approve(address(registry), totalAmount);
+
+        registry.fundAward(awardId, totalAmount);
+
+        require(
+            token.balanceOf(address(registry)) == totalAmount, "registry token balance mismatch"
+        );
+
+        (,,,,,,, uint256 totalDeposited,,,,, AwardDistributionRegistry.AwardStatus status,) =
+            registry.awards(awardId);
+        require(totalDeposited == totalAmount, "total deposited mismatch");
+        require(status == AwardDistributionRegistry.AwardStatus.Funded, "status should be funded");
+    }
+
     function createValidAward(bytes32 awardId) private {
+        createAwardWithToken(awardId, address(0xCAFE));
+    }
+
+    function createAwardWithToken(bytes32 awardId, address rewardToken) private {
         registry.createAward(
             awardId,
             keccak256("event-1"),
             keccak256("project-1"),
             "https://awardblock.local/metadata/award-1.json",
             keccak256("metadata"),
-            address(0xCAFE),
+            rewardToken,
             uint64(block.timestamp + 1 days),
             uint64(block.timestamp + 8 days)
         );
@@ -213,9 +250,8 @@ contract RecipientSetterProxy {
         address[] memory recipients,
         uint256[] memory amounts
     ) external returns (bool) {
-        (bool success,) = address(registry).call(
-            abi.encodeCall(registry.setRecipients, (awardId, recipients, amounts))
-        );
+        (bool success,) = address(registry)
+            .call(abi.encodeCall(registry.setRecipients, (awardId, recipients, amounts)));
         return success;
     }
 }

@@ -1,7 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 contract AwardDistributionRegistry {
+    using SafeERC20 for IERC20;
+
     enum AwardStatus {
         Draft,
         AwaitingRecipients,
@@ -35,12 +40,21 @@ contract AwardDistributionRegistry {
     mapping(bytes32 => mapping(address => uint256)) public allocations;
     mapping(bytes32 => mapping(address => bool)) public claimed;
 
-    event AwardCreated(bytes32 indexed awardId, bytes32 indexed eventId, bytes32 indexed projectId, address organizer);
-    event RecipientsAssigned(bytes32 indexed awardId, uint256 recipientCount, uint256 totalAllocated);
+    event AwardCreated(
+        bytes32 indexed awardId,
+        bytes32 indexed eventId,
+        bytes32 indexed projectId,
+        address organizer
+    );
+    event RecipientsAssigned(
+        bytes32 indexed awardId, uint256 recipientCount, uint256 totalAllocated
+    );
     event AwardFunded(bytes32 indexed awardId, address indexed token, uint256 amount);
     event AwardFinalized(bytes32 indexed awardId, bytes32 metadataHash, uint256 totalAllocated);
     event RewardClaimed(bytes32 indexed awardId, address indexed recipient, uint256 amount);
-    event AwardSuperseded(bytes32 indexed oldAwardId, bytes32 indexed newAwardId, bytes32 reasonHash);
+    event AwardSuperseded(
+        bytes32 indexed oldAwardId, bytes32 indexed newAwardId, bytes32 reasonHash
+    );
     event AwardClosed(bytes32 indexed awardId, uint256 returnedAmount);
 
     error AwardAlreadyExists(bytes32 awardId);
@@ -89,9 +103,11 @@ contract AwardDistributionRegistry {
         emit AwardCreated(awardId, eventId, projectId, msg.sender);
     }
 
-    function setRecipients(bytes32 awardId, address[] calldata recipients, uint256[] calldata amounts)
-        external
-    {
+    function setRecipients(
+        bytes32 awardId,
+        address[] calldata recipients,
+        uint256[] calldata amounts
+    ) external {
         Award storage award = awards[awardId];
 
         if (award.organizer != msg.sender) {
@@ -126,8 +142,21 @@ contract AwardDistributionRegistry {
         emit RecipientsAssigned(awardId, recipients.length, totalAllocated);
     }
 
-    function fundAward(bytes32, uint256) external pure {
-        revert NotImplemented();
+    function fundAward(bytes32 awardId, uint256 amount) external {
+        Award storage award = awards[awardId];
+
+        if (award.organizer != msg.sender) {
+            revert UnauthorizedAwardOrganizer(awardId, msg.sender);
+        }
+
+        IERC20(award.rewardToken).safeTransferFrom(msg.sender, address(this), amount);
+
+        award.totalDeposited += amount;
+        if (award.totalDeposited >= award.totalAllocated) {
+            award.status = AwardStatus.Funded;
+        }
+
+        emit AwardFunded(awardId, award.rewardToken, amount);
     }
 
     function finalizeAward(bytes32) external pure {
