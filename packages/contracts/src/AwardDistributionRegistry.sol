@@ -58,6 +58,9 @@ contract AwardDistributionRegistry {
     event AwardClosed(bytes32 indexed awardId, uint256 returnedAmount);
 
     error AwardAlreadyExists(bytes32 awardId);
+    error ClaimWindowNotActive(
+        bytes32 awardId, uint64 currentTime, uint64 claimStart, uint64 claimEnd
+    );
     error InvalidAwardStatus(bytes32 awardId, uint8 currentStatus, uint8 requiredStatus);
     error InvalidClaimWindow(uint64 claimStart, uint64 claimEnd);
     error InvalidRecipientAllocation();
@@ -65,6 +68,8 @@ contract AwardDistributionRegistry {
     error NotImplemented();
     error RecipientArrayLengthMismatch();
     error RecipientAlreadyAssigned(address recipient);
+    error RecipientNotAllocated(bytes32 awardId, address recipient);
+    error RewardAlreadyClaimed(bytes32 awardId, address recipient);
     error UnauthorizedAwardOrganizer(bytes32 awardId, address caller);
 
     function createAward(
@@ -176,8 +181,35 @@ contract AwardDistributionRegistry {
         emit AwardFinalized(awardId, award.metadataHash, award.totalAllocated);
     }
 
-    function claim(bytes32) external pure {
-        revert NotImplemented();
+    function claim(bytes32 awardId) external {
+        Award storage award = awards[awardId];
+
+        if (award.status != AwardStatus.Finalized && award.status != AwardStatus.Claiming) {
+            revert InvalidAwardStatus(awardId, uint8(award.status), uint8(AwardStatus.Finalized));
+        }
+
+        uint64 currentTime = uint64(block.timestamp);
+        if (currentTime < award.claimStart || currentTime >= award.claimEnd) {
+            revert ClaimWindowNotActive(awardId, currentTime, award.claimStart, award.claimEnd);
+        }
+
+        uint256 amount = allocations[awardId][msg.sender];
+        if (amount == 0) {
+            revert RecipientNotAllocated(awardId, msg.sender);
+        }
+        if (claimed[awardId][msg.sender]) {
+            revert RewardAlreadyClaimed(awardId, msg.sender);
+        }
+
+        claimed[awardId][msg.sender] = true;
+        award.totalClaimed += amount;
+        if (award.status == AwardStatus.Finalized) {
+            award.status = AwardStatus.Claiming;
+        }
+
+        IERC20(award.rewardToken).safeTransfer(msg.sender, amount);
+
+        emit RewardClaimed(awardId, msg.sender, amount);
     }
 
     function supersedeAward(bytes32, bytes32, bytes32) external pure {

@@ -249,6 +249,142 @@ contract AwardDistributionRegistryTest {
         );
     }
 
+    function testClaimTransfersAllocatedRewardToRecipient() public {
+        bytes32 awardId = keccak256("award-claimable");
+        AwardClaimantProxy claimant = new AwardClaimantProxy();
+        uint256 allocation = 400_000000;
+
+        MockUSDC token = prepareFinalizedAwardForRecipient(
+            awardId,
+            address(claimant),
+            allocation,
+            uint64(block.timestamp),
+            uint64(block.timestamp + 8 days)
+        );
+
+        bool success = claimant.tryClaim(registry, awardId);
+
+        require(success, "claim failed");
+        require(token.balanceOf(address(claimant)) == allocation, "claimant token balance mismatch");
+        require(registry.claimed(awardId, address(claimant)), "claimed flag mismatch");
+
+        (,,,,,,,, uint256 totalClaimed,,,, AwardDistributionRegistry.AwardStatus status,) =
+            registry.awards(awardId);
+        require(totalClaimed == allocation, "total claimed mismatch");
+        require(
+            status == AwardDistributionRegistry.AwardStatus.Claiming, "status should be claiming"
+        );
+    }
+
+    function testClaimRejectsAwardThatIsNotFinalized() public {
+        bytes32 awardId = keccak256("award-claim-not-finalized");
+        AwardClaimantProxy claimant = new AwardClaimantProxy();
+
+        prepareFundedAwardForRecipient(
+            awardId,
+            address(claimant),
+            400_000000,
+            uint64(block.timestamp),
+            uint64(block.timestamp + 8 days)
+        );
+
+        (bool success, bytes memory errorData) = claimant.tryClaimWithError(registry, awardId);
+
+        require(!success, "not finalized claim succeeded");
+        require(
+            errorSelector(errorData)
+                == bytes4(keccak256("InvalidAwardStatus(bytes32,uint8,uint8)")),
+            "wrong claim status error"
+        );
+    }
+
+    function testClaimRejectsBeforeClaimWindowStarts() public {
+        bytes32 awardId = keccak256("award-claim-before-window");
+        AwardClaimantProxy claimant = new AwardClaimantProxy();
+
+        prepareFinalizedAwardForRecipient(
+            awardId,
+            address(claimant),
+            400_000000,
+            uint64(block.timestamp + 1 days),
+            uint64(block.timestamp + 8 days)
+        );
+
+        (bool success, bytes memory errorData) = claimant.tryClaimWithError(registry, awardId);
+
+        require(!success, "early claim succeeded");
+        require(
+            errorSelector(errorData)
+                == bytes4(keccak256("ClaimWindowNotActive(bytes32,uint64,uint64,uint64)")),
+            "wrong early claim error"
+        );
+    }
+
+    function testClaimRejectsAfterClaimWindowEnds() public {
+        bytes32 awardId = keccak256("award-claim-after-window");
+        AwardClaimantProxy claimant = new AwardClaimantProxy();
+
+        prepareFinalizedAwardForRecipient(
+            awardId, address(claimant), 400_000000, 0, uint64(block.timestamp)
+        );
+
+        (bool success, bytes memory errorData) = claimant.tryClaimWithError(registry, awardId);
+
+        require(!success, "late claim succeeded");
+        require(
+            errorSelector(errorData)
+                == bytes4(keccak256("ClaimWindowNotActive(bytes32,uint64,uint64,uint64)")),
+            "wrong late claim error"
+        );
+    }
+
+    function testClaimRejectsUnallocatedRecipient() public {
+        bytes32 awardId = keccak256("award-claim-unallocated");
+        AwardClaimantProxy allocatedClaimant = new AwardClaimantProxy();
+        AwardClaimantProxy unallocatedClaimant = new AwardClaimantProxy();
+
+        prepareFinalizedAwardForRecipient(
+            awardId,
+            address(allocatedClaimant),
+            400_000000,
+            uint64(block.timestamp),
+            uint64(block.timestamp + 8 days)
+        );
+
+        (bool success, bytes memory errorData) =
+            unallocatedClaimant.tryClaimWithError(registry, awardId);
+
+        require(!success, "unallocated claim succeeded");
+        require(
+            errorSelector(errorData) == bytes4(keccak256("RecipientNotAllocated(bytes32,address)")),
+            "wrong unallocated claim error"
+        );
+    }
+
+    function testClaimRejectsDuplicateClaim() public {
+        bytes32 awardId = keccak256("award-claim-duplicate");
+        AwardClaimantProxy claimant = new AwardClaimantProxy();
+
+        prepareFinalizedAwardForRecipient(
+            awardId,
+            address(claimant),
+            400_000000,
+            uint64(block.timestamp),
+            uint64(block.timestamp + 8 days)
+        );
+
+        bool firstClaimSuccess = claimant.tryClaim(registry, awardId);
+        (bool secondClaimSuccess, bytes memory errorData) =
+            claimant.tryClaimWithError(registry, awardId);
+
+        require(firstClaimSuccess, "first claim failed");
+        require(!secondClaimSuccess, "duplicate claim succeeded");
+        require(
+            errorSelector(errorData) == bytes4(keccak256("RewardAlreadyClaimed(bytes32,address)")),
+            "wrong duplicate claim error"
+        );
+    }
+
     function prepareFundedAward(bytes32 awardId, uint256 totalAmount)
         private
         returns (MockUSDC token)
@@ -270,11 +406,58 @@ contract AwardDistributionRegistryTest {
         registry.fundAward(awardId, totalAmount);
     }
 
+    function prepareFundedAwardForRecipient(
+        bytes32 awardId,
+        address recipient,
+        uint256 allocation,
+        uint64 claimStart,
+        uint64 claimEnd
+    ) private returns (MockUSDC token) {
+        uint256 totalAmount = 1_000_000000;
+        token = new MockUSDC();
+        createAwardWithTokenAndClaimWindow(awardId, address(token), claimStart, claimEnd);
+
+        address[] memory recipients = new address[](2);
+        recipients[0] = recipient;
+        recipients[1] = address(0xB0B);
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = allocation;
+        amounts[1] = totalAmount - allocation;
+
+        registry.setRecipients(awardId, recipients, amounts);
+        token.mint(address(this), totalAmount);
+        token.approve(address(registry), totalAmount);
+        registry.fundAward(awardId, totalAmount);
+    }
+
+    function prepareFinalizedAwardForRecipient(
+        bytes32 awardId,
+        address recipient,
+        uint256 allocation,
+        uint64 claimStart,
+        uint64 claimEnd
+    ) private returns (MockUSDC token) {
+        token = prepareFundedAwardForRecipient(awardId, recipient, allocation, claimStart, claimEnd);
+        registry.finalizeAward(awardId);
+    }
+
     function createValidAward(bytes32 awardId) private {
         createAwardWithToken(awardId, address(0xCAFE));
     }
 
     function createAwardWithToken(bytes32 awardId, address rewardToken) private {
+        createAwardWithTokenAndClaimWindow(
+            awardId, rewardToken, uint64(block.timestamp + 1 days), uint64(block.timestamp + 8 days)
+        );
+    }
+
+    function createAwardWithTokenAndClaimWindow(
+        bytes32 awardId,
+        address rewardToken,
+        uint64 claimStart,
+        uint64 claimEnd
+    ) private {
         registry.createAward(
             awardId,
             keccak256("event-1"),
@@ -282,8 +465,8 @@ contract AwardDistributionRegistryTest {
             "https://awardblock.local/metadata/award-1.json",
             keccak256("metadata"),
             rewardToken,
-            uint64(block.timestamp + 1 days),
-            uint64(block.timestamp + 8 days)
+            claimStart,
+            claimEnd
         );
     }
 
@@ -315,5 +498,19 @@ contract AwardFinalizerProxy {
         returns (bool, bytes memory)
     {
         return address(registry).call(abi.encodeCall(registry.finalizeAward, (awardId)));
+    }
+}
+
+contract AwardClaimantProxy {
+    function tryClaim(AwardDistributionRegistry registry, bytes32 awardId) external returns (bool) {
+        (bool success,) = address(registry).call(abi.encodeCall(registry.claim, (awardId)));
+        return success;
+    }
+
+    function tryClaimWithError(AwardDistributionRegistry registry, bytes32 awardId)
+        external
+        returns (bool, bytes memory)
+    {
+        return address(registry).call(abi.encodeCall(registry.claim, (awardId)));
     }
 }
