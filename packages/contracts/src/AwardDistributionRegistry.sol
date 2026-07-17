@@ -46,16 +46,33 @@ contract AwardDistributionRegistry {
     error NotImplemented();
 
     function createAward(
-        bytes32,
-        bytes32,
-        bytes32,
-        string calldata,
-        bytes32,
-        address,
-        uint64,
-        uint64
-    ) external pure {
-        revert NotImplemented();
+        bytes32 awardId,
+        bytes32 eventId,
+        bytes32 projectId,
+        string calldata metadataURI,
+        bytes32 metadataHash,
+        address rewardToken,
+        uint64 claimStart,
+        uint64 claimEnd
+    ) external {
+        awards[awardId] = Award({
+            organizer: msg.sender,
+            eventId: eventId,
+            projectId: projectId,
+            metadataURI: metadataURI,
+            metadataHash: metadataHash,
+            rewardToken: rewardToken,
+            totalAllocated: 0,
+            totalDeposited: 0,
+            totalClaimed: 0,
+            claimStart: claimStart,
+            claimEnd: claimEnd,
+            finalizedAt: 0,
+            status: AwardStatus.Draft,
+            supersededBy: bytes32(0)
+        });
+
+        emit AwardCreated(awardId, eventId, projectId, msg.sender);
     }
 
     function setRecipients(bytes32, address[] calldata, uint256[] calldata) external pure {

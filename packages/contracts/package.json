@@ -7,5 +7,9 @@
     "test": "forge test",
     "lint": "forge fmt --check",
     "format": "forge fmt"
+  },
+  "devDependencies": {
+    "@foundry-rs/forge-win32-amd64": "1.7.1",
+    "@openzeppelin/contracts": "^5.6.1"
   }
 }
