@@ -429,6 +429,94 @@ body {
   font-weight: 700;
 }
 
+.claim-page {
+  display: grid;
+  gap: 28px;
+}
+
+.claim-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 40px 0 24px;
+  border-bottom: 1px solid #d6dbe7;
+}
+
+.claim-hero h1 {
+  margin: 0;
+  font-size: 40px;
+  line-height: 1.05;
+}
+
+.claim-hero .status-badge,
+.claim-summary .status-badge {
+  justify-self: start;
+}
+
+.claim-content {
+  display: grid;
+  gap: 24px;
+}
+
+.claim-summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.claim-summary h2 {
+  margin: 0 0 8px;
+  font-size: 34px;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.claim-summary p {
+  margin: 0;
+  color: #4a5568;
+  overflow-wrap: anywhere;
+}
+
+.claim-action-panel {
+  display: grid;
+  gap: 14px;
+  max-width: 640px;
+  padding: 20px;
+  border: 1px solid #d6dbe7;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.claim-action-panel h3,
+.claim-action-panel p {
+  margin: 0;
+}
+
+.claim-action-panel label {
+  display: grid;
+  gap: 8px;
+  color: #687385;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.claim-action-panel input {
+  min-height: 42px;
+  width: 100%;
+  padding: 0 12px;
+  border: 1px solid #d6dbe7;
+  border-radius: 6px;
+  color: #1d2433;
+  font: inherit;
+}
+
+.claim-action-error {
+  min-height: 96px;
+  margin-bottom: 12px;
+}
+
 .profile-loading,
 .empty-state {
   display: grid;
@@ -484,7 +572,9 @@ body {
   }
 
   .award-detail-hero,
-  .award-detail-summary {
+  .award-detail-summary,
+  .claim-hero,
+  .claim-summary {
     display: grid;
   }
 

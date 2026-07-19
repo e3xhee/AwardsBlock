@@ -1,8 +1,14 @@
 import "./styles/base.css";
 import { mountAwardDetailPage } from "./pages/AwardDetailPage";
+import { mountClaimInvitePage } from "./pages/ClaimInvitePage";
 import { mountHomePage } from "./pages/HomePage";
 import { mountProfilePage } from "./pages/ProfilePage";
-import { getAwardId, getProfileWalletAddress, renderRoute } from "./router/router";
+import {
+  getAwardId,
+  getClaimInviteToken,
+  getProfileWalletAddress,
+  renderRoute
+} from "./router/router";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 
@@ -20,10 +26,16 @@ function render() {
 
 async function mountRoute(root: ParentNode, pathname: string): Promise<void> {
   const awardId = getAwardId(pathname);
+  const claimInviteToken = getClaimInviteToken(pathname);
   const profileWalletAddress = getProfileWalletAddress(pathname);
 
   if (awardId) {
     await mountAwardDetailPage(root, awardId);
+    return;
+  }
+
+  if (claimInviteToken) {
+    await mountClaimInvitePage(root, claimInviteToken);
     return;
   }
 
