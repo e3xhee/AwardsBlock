@@ -2,6 +2,7 @@ import "./styles/base.css";
 import { mountAwardDetailPage } from "./pages/AwardDetailPage";
 import { mountClaimInvitePage } from "./pages/ClaimInvitePage";
 import { mountHomePage } from "./pages/HomePage";
+import { mountOrganizerPage } from "./pages/OrganizerPage";
 import { mountProfilePage } from "./pages/ProfilePage";
 import {
   getAwardId,
@@ -41,6 +42,11 @@ async function mountRoute(root: ParentNode, pathname: string): Promise<void> {
 
   if (profileWalletAddress) {
     await mountProfilePage(root, profileWalletAddress);
+    return;
+  }
+
+  if (pathname === "/organizer") {
+    mountOrganizerPage(root);
     return;
   }
 
