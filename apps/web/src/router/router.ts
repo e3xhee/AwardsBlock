@@ -7,7 +7,7 @@ import { renderProfilePage } from "../pages/ProfilePage";
 import { renderProjectDetailPage } from "../pages/ProjectDetailPage";
 
 export function renderRoute(pathname: string): string {
-  if (pathname.startsWith("/events/")) return renderEventDetailPage();
+  if (pathname.startsWith("/events/")) return renderEventDetailPage(getEventId(pathname));
   if (pathname.startsWith("/projects/")) return renderProjectDetailPage();
   if (pathname.startsWith("/awards/")) return renderAwardDetailPage(getAwardId(pathname));
   if (pathname.startsWith("/profile/")) return renderProfilePage(getProfileWalletAddress(pathname));
@@ -18,6 +18,20 @@ export function renderRoute(pathname: string): string {
 
 export function getAwardId(pathname: string): string | null {
   const match = pathname.match(/^\/awards\/([^/]+)$/);
+
+  if (!match) {
+    return null;
+  }
+
+  try {
+    return decodeURIComponent(match[1] ?? "");
+  } catch {
+    return match[1] ?? "";
+  }
+}
+
+export function getEventId(pathname: string): string | null {
+  const match = pathname.match(/^\/events\/([^/]+)$/);
 
   if (!match) {
     return null;

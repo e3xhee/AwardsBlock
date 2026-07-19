@@ -328,7 +328,21 @@ body {
   gap: 28px;
 }
 
+.event-detail-page {
+  display: grid;
+  gap: 28px;
+}
+
 .award-detail-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 40px 0 24px;
+  border-bottom: 1px solid #d6dbe7;
+}
+
+.event-detail-hero {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -344,8 +358,17 @@ body {
   overflow-wrap: anywhere;
 }
 
+.event-detail-hero h1 {
+  margin: 0;
+  font-size: 40px;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
 .award-detail-hero .status-badge,
-.award-detail-summary .status-badge {
+.award-detail-summary .status-badge,
+.event-detail-hero .status-badge,
+.event-detail-summary .status-badge {
   justify-self: start;
 }
 
@@ -354,7 +377,19 @@ body {
   gap: 24px;
 }
 
+.event-detail-content {
+  display: grid;
+  gap: 24px;
+}
+
 .award-detail-summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.event-detail-summary {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -368,7 +403,21 @@ body {
   overflow-wrap: anywhere;
 }
 
+.event-detail-summary h2 {
+  margin: 0 0 8px;
+  font-size: 34px;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
 .award-detail-summary p {
+  margin: 0;
+  color: #4a5568;
+  overflow-wrap: anywhere;
+}
+
+.event-detail-summary p {
+  max-width: 780px;
   margin: 0;
   color: #4a5568;
   overflow-wrap: anywhere;
@@ -419,6 +468,46 @@ body {
 .detail-metadata dd {
   margin: 0;
   font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.event-link-list,
+.event-project-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+}
+
+.muted-label {
+  color: #687385;
+  font-weight: 700;
+}
+
+.event-project-list {
+  display: grid;
+  gap: 12px;
+}
+
+.event-project-row {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid #d6dbe7;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.event-project-row h3 {
+  margin: 0 0 4px;
+  font-size: 24px;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.event-project-row p {
+  margin: 0;
+  color: #4a5568;
   overflow-wrap: anywhere;
 }
 
@@ -758,6 +847,8 @@ body {
 
   .award-detail-hero,
   .award-detail-summary,
+  .event-detail-hero,
+  .event-detail-summary,
   .claim-hero,
   .claim-summary,
   .organizer-hero,
