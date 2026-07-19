@@ -333,6 +333,11 @@ body {
   gap: 28px;
 }
 
+.project-detail-page {
+  display: grid;
+  gap: 28px;
+}
+
 .award-detail-hero {
   display: flex;
   align-items: flex-start;
@@ -343,6 +348,15 @@ body {
 }
 
 .event-detail-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 40px 0 24px;
+  border-bottom: 1px solid #d6dbe7;
+}
+
+.project-detail-hero {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -365,10 +379,19 @@ body {
   overflow-wrap: anywhere;
 }
 
+.project-detail-hero h1 {
+  margin: 0;
+  font-size: 40px;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
 .award-detail-hero .status-badge,
 .award-detail-summary .status-badge,
 .event-detail-hero .status-badge,
-.event-detail-summary .status-badge {
+.event-detail-summary .status-badge,
+.project-detail-hero .status-badge,
+.project-detail-summary .status-badge {
   justify-self: start;
 }
 
@@ -382,6 +405,11 @@ body {
   gap: 24px;
 }
 
+.project-detail-content {
+  display: grid;
+  gap: 24px;
+}
+
 .award-detail-summary {
   display: flex;
   align-items: flex-start;
@@ -390,6 +418,13 @@ body {
 }
 
 .event-detail-summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.project-detail-summary {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -410,6 +445,13 @@ body {
   overflow-wrap: anywhere;
 }
 
+.project-detail-summary h2 {
+  margin: 0 0 8px;
+  font-size: 34px;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
 .award-detail-summary p {
   margin: 0;
   color: #4a5568;
@@ -417,6 +459,13 @@ body {
 }
 
 .event-detail-summary p {
+  max-width: 780px;
+  margin: 0;
+  color: #4a5568;
+  overflow-wrap: anywhere;
+}
+
+.project-detail-summary p {
   max-width: 780px;
   margin: 0;
   color: #4a5568;
@@ -472,7 +521,8 @@ body {
 }
 
 .event-link-list,
-.event-project-actions {
+.event-project-actions,
+.project-link-list {
   display: flex;
   flex-wrap: wrap;
   gap: 14px;
@@ -508,6 +558,63 @@ body {
 .event-project-row p {
   margin: 0;
   color: #4a5568;
+  overflow-wrap: anywhere;
+}
+
+.project-award-list {
+  display: grid;
+  gap: 12px;
+}
+
+.project-award-row {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid #d6dbe7;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.project-award-row__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.project-award-row__header h3 {
+  margin: 0 0 6px;
+  font-size: 24px;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.project-award-row__header p {
+  margin: 0;
+  color: #4a5568;
+  overflow-wrap: anywhere;
+}
+
+.project-award-row__meta {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.project-award-row__meta div {
+  display: grid;
+  gap: 4px;
+}
+
+.project-award-row__meta dt {
+  color: #687385;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.project-award-row__meta dd {
+  margin: 0;
+  font-weight: 700;
   overflow-wrap: anywhere;
 }
 
@@ -849,12 +956,19 @@ body {
   .award-detail-summary,
   .event-detail-hero,
   .event-detail-summary,
+  .project-detail-hero,
+  .project-detail-summary,
+  .project-award-row__header,
   .claim-hero,
   .claim-summary,
   .organizer-hero,
   .organizer-layout,
   .organizer-field-grid {
     display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .project-award-row__meta {
     grid-template-columns: 1fr;
   }
 

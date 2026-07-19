@@ -8,7 +8,7 @@ import { renderProjectDetailPage } from "../pages/ProjectDetailPage";
 
 export function renderRoute(pathname: string): string {
   if (pathname.startsWith("/events/")) return renderEventDetailPage(getEventId(pathname));
-  if (pathname.startsWith("/projects/")) return renderProjectDetailPage();
+  if (pathname.startsWith("/projects/")) return renderProjectDetailPage(getProjectId(pathname));
   if (pathname.startsWith("/awards/")) return renderAwardDetailPage(getAwardId(pathname));
   if (pathname.startsWith("/profile/")) return renderProfilePage(getProfileWalletAddress(pathname));
   if (pathname.startsWith("/claim/")) return renderClaimInvitePage(getClaimInviteToken(pathname));
@@ -32,6 +32,20 @@ export function getAwardId(pathname: string): string | null {
 
 export function getEventId(pathname: string): string | null {
   const match = pathname.match(/^\/events\/([^/]+)$/);
+
+  if (!match) {
+    return null;
+  }
+
+  try {
+    return decodeURIComponent(match[1] ?? "");
+  } catch {
+    return match[1] ?? "";
+  }
+}
+
+export function getProjectId(pathname: string): string | null {
+  const match = pathname.match(/^\/projects\/([^/]+)$/);
 
   if (!match) {
     return null;

@@ -5,11 +5,13 @@ import { mountEventDetailPage } from "./pages/EventDetailPage";
 import { mountHomePage } from "./pages/HomePage";
 import { mountOrganizerPage } from "./pages/OrganizerPage";
 import { mountProfilePage } from "./pages/ProfilePage";
+import { mountProjectDetailPage } from "./pages/ProjectDetailPage";
 import {
   getAwardId,
   getClaimInviteToken,
   getEventId,
   getProfileWalletAddress,
+  getProjectId,
   renderRoute
 } from "./router/router";
 
@@ -29,12 +31,18 @@ function render() {
 
 async function mountRoute(root: ParentNode, pathname: string): Promise<void> {
   const eventId = getEventId(pathname);
+  const projectId = getProjectId(pathname);
   const awardId = getAwardId(pathname);
   const claimInviteToken = getClaimInviteToken(pathname);
   const profileWalletAddress = getProfileWalletAddress(pathname);
 
   if (eventId) {
     await mountEventDetailPage(root, eventId);
+    return;
+  }
+
+  if (projectId) {
+    await mountProjectDetailPage(root, projectId);
     return;
   }
 
