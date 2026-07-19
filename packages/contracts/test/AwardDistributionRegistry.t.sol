@@ -127,6 +127,23 @@ contract AwardDistributionRegistryTest {
         );
     }
 
+    function testSetRecipientsRejectsEmptyRecipientList() public {
+        bytes32 awardId = keccak256("award-empty-recipients");
+        createValidAward(awardId);
+
+        address[] memory recipients = new address[](0);
+        uint256[] memory amounts = new uint256[](0);
+
+        (bool success, bytes memory errorData) = address(registry)
+            .call(abi.encodeCall(registry.setRecipients, (awardId, recipients, amounts)));
+
+        require(!success, "empty recipients succeeded");
+        require(
+            errorSelector(errorData) == bytes4(keccak256("InvalidRecipientAllocation()")),
+            "wrong empty recipients error"
+        );
+    }
+
     function testSetRecipientsRejectsZeroAddressRecipient() public {
         bytes32 awardId = keccak256("award-1");
         createValidAward(awardId);
@@ -240,6 +257,60 @@ contract AwardDistributionRegistryTest {
             registry.awards(awardId);
         require(totalDeposited == totalAmount, "total deposited mismatch");
         require(status == AwardDistributionRegistry.AwardStatus.Funded, "status should be funded");
+    }
+
+    function testFundAwardRejectsZeroAmount() public {
+        bytes32 awardId = keccak256("award-fund-zero-amount");
+
+        MockUSDC token = new MockUSDC();
+        createAwardWithToken(awardId, address(token));
+
+        address[] memory recipients = new address[](1);
+        recipients[0] = address(0xA11CE);
+
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = 400_000000;
+
+        registry.setRecipients(awardId, recipients, amounts);
+
+        (bool success, bytes memory errorData) =
+            address(registry).call(abi.encodeCall(registry.fundAward, (awardId, 0)));
+
+        require(!success, "zero amount fund succeeded");
+        require(
+            errorSelector(errorData) == bytes4(keccak256("InvalidFundingAmount()")),
+            "wrong zero amount fund error"
+        );
+    }
+
+    function testFundAwardRejectsOverfunding() public {
+        bytes32 awardId = keccak256("award-fund-overfund");
+        uint256 totalAmount = 1_000_000000;
+        uint256 overfundAmount = totalAmount + 1;
+
+        MockUSDC token = new MockUSDC();
+        createAwardWithToken(awardId, address(token));
+
+        address[] memory recipients = new address[](2);
+        recipients[0] = address(0xA11CE);
+        recipients[1] = address(0xB0B);
+
+        uint256[] memory amounts = new uint256[](2);
+        amounts[0] = 400_000000;
+        amounts[1] = 600_000000;
+
+        registry.setRecipients(awardId, recipients, amounts);
+        token.mint(address(this), overfundAmount);
+        token.approve(address(registry), overfundAmount);
+
+        (bool success, bytes memory errorData) =
+            address(registry).call(abi.encodeCall(registry.fundAward, (awardId, overfundAmount)));
+
+        require(!success, "overfund succeeded");
+        require(
+            errorSelector(errorData) == bytes4(keccak256("InvalidFundingAmount()")),
+            "wrong overfund error"
+        );
     }
 
     function testFundAwardRejectsAwardWithoutRecipients() public {

@@ -70,6 +70,7 @@ contract AwardDistributionRegistry is ReentrancyGuard {
         bytes32 awardId, uint64 currentTime, uint64 claimStart, uint64 claimEnd
     );
     error InvalidAwardStatus(bytes32 awardId, uint8 currentStatus, uint8 requiredStatus);
+    error InvalidFundingAmount();
     error InvalidClaimWindow(uint64 claimStart, uint64 claimEnd);
     error InvalidRecipientAllocation();
     error InvalidRecipientAddress();
@@ -146,6 +147,9 @@ contract AwardDistributionRegistry is ReentrancyGuard {
         if (recipients.length != amounts.length) {
             revert RecipientArrayLengthMismatch();
         }
+        if (recipients.length == 0) {
+            revert InvalidRecipientAllocation();
+        }
 
         uint256 totalAllocated;
 
@@ -182,8 +186,13 @@ contract AwardDistributionRegistry is ReentrancyGuard {
             revert InvalidAwardStatus(awardId, uint8(award.status), uint8(AwardStatus.ReadyToFund));
         }
 
+        uint256 remainingAmount = award.totalAllocated - award.totalDeposited;
+        if (amount == 0 || amount > remainingAmount) {
+            revert InvalidFundingAmount();
+        }
+
         award.totalDeposited += amount;
-        if (award.totalDeposited >= award.totalAllocated) {
+        if (award.totalDeposited == award.totalAllocated) {
             award.status = AwardStatus.Funded;
         }
 
