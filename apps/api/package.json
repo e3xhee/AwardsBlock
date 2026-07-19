@@ -7,7 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
-    "test": "node --import tsx --test src/routes/eventRoutes.test.ts",
+    "test": "node --no-warnings --import tsx --test src/routes/eventRoutes.test.ts src/routes/authRoutes.test.ts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
