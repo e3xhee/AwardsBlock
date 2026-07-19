@@ -61,11 +61,21 @@ const createAwardMemberSchema = z
   .strict();
 
 const updateAwardMemberSchema = createAwardMemberSchema.partial().strict();
+const claimAwardMemberSchema = z
+  .object({
+    claimTxHash: z
+      .string()
+      .trim()
+      .regex(/^0x[a-fA-F0-9]{64}$/, "Invalid claim transaction hash")
+      .transform((value) => value.toLowerCase())
+  })
+  .strict();
 
 type CreateAwardMemberInput = z.infer<typeof createAwardMemberSchema> & {
   awardId: string;
 };
 type UpdateAwardMemberInput = z.infer<typeof updateAwardMemberSchema>;
+type ClaimAwardMemberInput = z.infer<typeof claimAwardMemberSchema>;
 
 type AwardOwnerRow = {
   id: string;
@@ -165,6 +175,48 @@ export function createAwardMemberRouter(database: DatabaseSync) {
     }
 
     response.json({ member: toAwardMemberResponse(member) });
+  });
+
+  router.post("/award-members/:id/claim", requireSession, (request, response) => {
+    const member = findAwardMember(database, request.params.id);
+
+    if (!member) {
+      sendAwardMemberNotFound(response);
+      return;
+    }
+
+    const parsedClaim = claimAwardMemberSchema.safeParse(request.body);
+
+    if (!parsedClaim.success) {
+      sendError(
+        response,
+        400,
+        "INVALID_AWARD_MEMBER_CLAIM_INPUT",
+        "Award member claim input is invalid",
+        {
+          issues: parsedClaim.error.flatten()
+        }
+      );
+      return;
+    }
+
+    if (isAwardMemberClaimed(member)) {
+      sendAwardMemberAlreadyClaimed(response);
+      return;
+    }
+
+    if (!isAwardMemberWalletConnected(member)) {
+      sendAwardMemberWalletNotConnected(response);
+      return;
+    }
+
+    if (!canClaimAwardMember(request, member)) {
+      sendAwardMemberClaimForbidden(response);
+      return;
+    }
+
+    const claimed = claimAwardMember(database, member, parsedClaim.data);
+    response.json({ member: toAwardMemberResponse(claimed) });
   });
 
   router.patch("/award-members/:id", requireSession, (request, response) => {
@@ -272,6 +324,33 @@ function insertAwardMember(database: DatabaseSync, member: CreateAwardMemberInpu
   return created;
 }
 
+function claimAwardMember(
+  database: DatabaseSync,
+  member: AwardMemberRow,
+  claim: ClaimAwardMemberInput
+): AwardMemberRow {
+  const claimedAt = nowIso();
+
+  database
+    .prepare(
+      `UPDATE award_members
+       SET invite_status = ?,
+           claimed_at = ?,
+           claim_tx_hash = ?,
+           updated_at = ?
+       WHERE id = ?`
+    )
+    .run("Claimed", claimedAt, claim.claimTxHash, claimedAt, member.id);
+
+  const claimed = findAwardMember(database, member.id);
+
+  if (!claimed) {
+    throw new Error("Failed to load claimed award member");
+  }
+
+  return claimed;
+}
+
 function updateAwardMember(
   database: DatabaseSync,
   existing: AwardMemberRow,
@@ -334,6 +413,22 @@ function canMutateAward(request: Request, awardOwner: AwardOwnerRow): boolean {
   return awardOwner.organizer_wallet === getAuthenticatedSession(request).walletAddress;
 }
 
+function canClaimAwardMember(request: Request, member: AwardMemberRow): boolean {
+  return member.wallet_address === getAuthenticatedSession(request).walletAddress;
+}
+
+function isAwardMemberClaimed(member: AwardMemberRow): boolean {
+  return member.invite_status === "Claimed" || member.claimed_at !== null || member.claim_tx_hash !== null;
+}
+
+function isAwardMemberWalletConnected(member: AwardMemberRow): boolean {
+  return (
+    member.invite_status === "WalletConnected" &&
+    member.wallet_address !== null &&
+    member.wallet_connected_at !== null
+  );
+}
+
 function findAwardOwner(database: DatabaseSync, awardId: string): AwardOwnerRow | undefined {
   return database
     .prepare("SELECT id, organizer_wallet FROM awards WHERE id = ?")
@@ -381,6 +476,28 @@ function sendAwardMemberForbidden(response: Response): void {
     403,
     "AWARD_MEMBER_FORBIDDEN",
     "Award member can only be changed by its award organizer"
+  );
+}
+
+function sendAwardMemberClaimForbidden(response: Response): void {
+  sendError(
+    response,
+    403,
+    "AWARD_MEMBER_CLAIM_FORBIDDEN",
+    "Award member can only be claimed by its connected wallet"
+  );
+}
+
+function sendAwardMemberAlreadyClaimed(response: Response): void {
+  sendError(response, 409, "AWARD_MEMBER_ALREADY_CLAIMED", "Award member was already claimed");
+}
+
+function sendAwardMemberWalletNotConnected(response: Response): void {
+  sendError(
+    response,
+    409,
+    "AWARD_MEMBER_WALLET_NOT_CONNECTED",
+    "Award member wallet must be connected before claim"
   );
 }
 

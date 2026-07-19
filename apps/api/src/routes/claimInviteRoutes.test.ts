@@ -74,6 +74,8 @@ type AwardMemberResponse = {
     walletAddress: string | null;
     inviteStatus: string;
     walletConnectedAt: string | null;
+    claimedAt: string | null;
+    claimTxHash: string | null;
   };
 };
 
@@ -118,6 +120,16 @@ type ConnectedClaimInviteResponse = {
       inviteStatus: string;
       walletConnectedAt: string;
     };
+  };
+};
+
+type ClaimedAwardMemberResponse = {
+  member: {
+    id: string;
+    walletAddress: string;
+    inviteStatus: string;
+    claimedAt: string;
+    claimTxHash: string;
   };
 };
 
@@ -398,5 +410,77 @@ test("recipients can connect wallets with claim invite tokens", async () => {
       }
     );
     assert.equal(duplicateConnectResponse.status, 404);
+  });
+});
+
+test("connected recipients can record award member claims", async () => {
+  await withApi(async (baseUrl) => {
+    const organizerCookie = await signIn(baseUrl, organizerAccount);
+    const recipientCookie = await signIn(baseUrl, otherAccount);
+    const eventId = await createEvent(baseUrl, organizerCookie);
+    const projectId = await createProject(baseUrl, organizerCookie, eventId);
+    const awardId = await createAward(baseUrl, organizerCookie, projectId);
+    const memberId = await createAwardMember(baseUrl, organizerCookie, awardId);
+
+    const createInviteResponse = await fetch(`${baseUrl}/award-members/${memberId}/claim-invites`, {
+      method: "POST",
+      headers: { ...jsonHeaders, cookie: organizerCookie },
+      body: JSON.stringify({ expiresAt: "2026-08-15T00:00:00.000Z" })
+    });
+    assert.equal(createInviteResponse.status, 201);
+    const invite = await readJson<CreatedClaimInviteResponse>(createInviteResponse);
+
+    const connectResponse = await fetch(
+      `${baseUrl}/claim-invites/${invite.invite.token}/connect-wallet`,
+      {
+        method: "POST",
+        headers: { cookie: recipientCookie }
+      }
+    );
+    assert.equal(connectResponse.status, 200);
+
+    const claimTxHash =
+      "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+    const anonymousClaimResponse = await fetch(`${baseUrl}/award-members/${memberId}/claim`, {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify({ claimTxHash })
+    });
+    assert.equal(anonymousClaimResponse.status, 401);
+
+    const forbiddenClaimResponse = await fetch(`${baseUrl}/award-members/${memberId}/claim`, {
+      method: "POST",
+      headers: { ...jsonHeaders, cookie: organizerCookie },
+      body: JSON.stringify({ claimTxHash })
+    });
+    assert.equal(forbiddenClaimResponse.status, 403);
+
+    const claimResponse = await fetch(`${baseUrl}/award-members/${memberId}/claim`, {
+      method: "POST",
+      headers: { ...jsonHeaders, cookie: recipientCookie },
+      body: JSON.stringify({ claimTxHash })
+    });
+    assert.equal(claimResponse.status, 200);
+    const claimed = await readJson<ClaimedAwardMemberResponse>(claimResponse);
+    assert.equal(claimed.member.id, memberId);
+    assert.equal(claimed.member.walletAddress, otherAccount.address.toLowerCase());
+    assert.equal(claimed.member.inviteStatus, "Claimed");
+    assert.equal(claimed.member.claimTxHash, claimTxHash);
+    assert.equal(typeof claimed.member.claimedAt, "string");
+
+    const memberResponse = await fetch(`${baseUrl}/award-members/${memberId}`);
+    assert.equal(memberResponse.status, 200);
+    const member = await readJson<AwardMemberResponse>(memberResponse);
+    assert.equal(member.member.inviteStatus, "Claimed");
+    assert.equal(member.member.claimTxHash, claimTxHash);
+    assert.equal(typeof member.member.claimedAt, "string");
+
+    const duplicateClaimResponse = await fetch(`${baseUrl}/award-members/${memberId}/claim`, {
+      method: "POST",
+      headers: { ...jsonHeaders, cookie: recipientCookie },
+      body: JSON.stringify({ claimTxHash })
+    });
+    assert.equal(duplicateClaimResponse.status, 409);
   });
 });
