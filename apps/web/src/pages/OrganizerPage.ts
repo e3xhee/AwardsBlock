@@ -1,4 +1,8 @@
 import { apiPost } from "../api/client";
+import {
+  mountWalletConnectButton,
+  renderWalletConnectButton
+} from "../components/WalletConnectButton";
 
 export type OrganizerAwardDraft = {
   eventName: string;
@@ -165,7 +169,10 @@ export function renderOrganizerPage(): string {
           <h1>Award Setup</h1>
           <p>Create the event, project, award, recipient allocation, and claim invite from one authenticated flow.</p>
         </div>
-        <span class="status-badge">Draft flow</span>
+        <div class="page-actions">
+          <span class="status-badge">Draft flow</span>
+          ${renderWalletConnectButton()}
+        </div>
       </section>
       <section class="organizer-layout">
         <form id="organizer-award-form" class="organizer-form">
@@ -186,6 +193,8 @@ export function renderOrganizerPage(): string {
 }
 
 export function mountOrganizerPage(root: ParentNode): void {
+  mountWalletConnectButton(root);
+
   const form = root.querySelector<HTMLFormElement>("#organizer-award-form");
   const result = root.querySelector<HTMLElement>("#organizer-result");
 

@@ -1,5 +1,6 @@
 import {
   buildOrganizerAwardPayloads,
+  renderOrganizerPage,
   type OrganizerAwardDraft
 } from "./OrganizerPage";
 
@@ -63,4 +64,8 @@ if (payloads.member.email !== "ada@example.com") {
 
 if (payloads.invite.expiresAt !== "2026-08-15T00:00:00.000Z") {
   throw new Error("Expected invite expiration payload");
+}
+
+if (!renderOrganizerPage().includes("data-wallet-auth")) {
+  throw new Error("Expected organizer page to render wallet auth controls");
 }

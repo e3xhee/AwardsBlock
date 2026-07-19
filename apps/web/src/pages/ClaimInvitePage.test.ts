@@ -1,6 +1,7 @@
 import type { AwardBlockDetail } from "./AwardDetailPage";
 import {
   mapClaimInviteToViewModel,
+  renderClaimInvitePage,
   type ClaimInviteLookupResponse
 } from "./ClaimInvitePage";
 
@@ -136,4 +137,8 @@ if (connectedViewModel.walletLabel !== "0x3333...3333") {
 
 if (connectedViewModel.canClaim !== true) {
   throw new Error("Expected connected member to be claim-ready");
+}
+
+if (!renderClaimInvitePage("invite-token-1").includes("data-wallet-auth")) {
+  throw new Error("Expected claim invite page to render wallet auth controls");
 }

@@ -1,4 +1,8 @@
 import { apiGet, apiPost } from "../api/client";
+import {
+  mountWalletConnectButton,
+  renderWalletConnectButton
+} from "../components/WalletConnectButton";
 import type { AwardBlockDetail, AwardBlockDetailResponse } from "./AwardDetailPage";
 import { formatTokenAmount, shortenAddress } from "../utils/format";
 
@@ -64,7 +68,10 @@ export function renderClaimInvitePage(token: string | null = null): string {
           <p class="eyebrow">Claim Invite</p>
           <h1>${token ? "Award Claim" : "Claim unavailable"}</h1>
         </div>
-        <span class="status-badge">Recipient</span>
+        <div class="page-actions">
+          <span class="status-badge">Recipient</span>
+          ${renderWalletConnectButton()}
+        </div>
       </section>
       <section id="claim-invite-content" class="claim-content" aria-live="polite">
         ${token ? renderClaimLoading() : renderClaimMissingToken()}
@@ -74,6 +81,8 @@ export function renderClaimInvitePage(token: string | null = null): string {
 }
 
 export async function mountClaimInvitePage(root: ParentNode, token: string): Promise<void> {
+  mountWalletConnectButton(root);
+
   const content = root.querySelector<HTMLElement>("#claim-invite-content");
 
   if (!content) return;
@@ -155,7 +164,7 @@ function renderInteractiveClaimInvite(
     } catch {
       content.insertAdjacentHTML("afterbegin", renderClaimActionError("Wallet session required"));
       connectButton.disabled = false;
-      connectButton.textContent = "Connect wallet";
+      connectButton.textContent = "Attach wallet";
     }
   });
 
@@ -243,8 +252,8 @@ function renderClaimActions(invite: ClaimInviteViewModel): string {
   if (invite.canConnectWallet) {
     return `
       <div class="claim-action-panel">
-        <p>Connect a wallet session to attach your recipient wallet to this invite.</p>
-        <button class="button" type="button" data-claim-connect>Connect wallet</button>
+        <p>Sign in with a wallet session above, then attach that wallet to this invite.</p>
+        <button class="button" type="button" data-claim-connect>Attach wallet</button>
       </div>
     `;
   }
