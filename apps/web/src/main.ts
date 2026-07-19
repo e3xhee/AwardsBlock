@@ -1,5 +1,6 @@
 import "./styles/base.css";
-import { renderRoute } from "./router/router";
+import { mountProfilePage } from "./pages/ProfilePage";
+import { getProfileWalletAddress, renderRoute } from "./router/router";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 
@@ -10,7 +11,17 @@ if (!app) {
 const appRoot = app;
 
 function render() {
-  appRoot.innerHTML = renderRoute(window.location.pathname);
+  const pathname = window.location.pathname;
+  appRoot.innerHTML = renderRoute(pathname);
+  void mountRoute(appRoot, pathname);
+}
+
+async function mountRoute(root: ParentNode, pathname: string): Promise<void> {
+  const profileWalletAddress = getProfileWalletAddress(pathname);
+
+  if (profileWalletAddress) {
+    await mountProfilePage(root, profileWalletAddress);
+  }
 }
 
 window.addEventListener("popstate", render);
