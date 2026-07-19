@@ -193,6 +193,39 @@ contract AwardDistributionRegistryTest {
         require(!success, "non organizer set recipients succeeded");
     }
 
+    function testSetRecipientsRejectsAwardThatIsNotDraft() public {
+        bytes32 awardId = keccak256("award-recipients-not-draft");
+        createValidAward(awardId);
+
+        address[] memory recipients = new address[](1);
+        recipients[0] = address(0xA11CE);
+
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = 400_000000;
+
+        registry.setRecipients(awardId, recipients, amounts);
+
+        address[] memory replacementRecipients = new address[](1);
+        replacementRecipients[0] = address(0xB0B);
+
+        uint256[] memory replacementAmounts = new uint256[](1);
+        replacementAmounts[0] = 500_000000;
+
+        (bool success, bytes memory errorData) = address(registry)
+            .call(
+                abi.encodeCall(
+                    registry.setRecipients, (awardId, replacementRecipients, replacementAmounts)
+                )
+            );
+
+        require(!success, "recipient reset succeeded");
+        require(
+            errorSelector(errorData)
+                == bytes4(keccak256("InvalidAwardStatus(bytes32,uint8,uint8)")),
+            "wrong recipient status error"
+        );
+    }
+
     function testFundAwardTransfersApprovedRewardTokens() public {
         bytes32 awardId = keccak256("award-funded");
         uint256 totalAmount = 1_000_000000;
@@ -207,6 +240,51 @@ contract AwardDistributionRegistryTest {
             registry.awards(awardId);
         require(totalDeposited == totalAmount, "total deposited mismatch");
         require(status == AwardDistributionRegistry.AwardStatus.Funded, "status should be funded");
+    }
+
+    function testFundAwardRejectsAwardWithoutRecipients() public {
+        bytes32 awardId = keccak256("award-fund-without-recipients");
+        uint256 amount = 1_000_000000;
+
+        MockUSDC token = new MockUSDC();
+        createAwardWithToken(awardId, address(token));
+        token.mint(address(this), amount);
+        token.approve(address(registry), amount);
+
+        (bool success, bytes memory errorData) =
+            address(registry).call(abi.encodeCall(registry.fundAward, (awardId, amount)));
+
+        require(!success, "draft award fund succeeded");
+        require(
+            errorSelector(errorData)
+                == bytes4(keccak256("InvalidAwardStatus(bytes32,uint8,uint8)")),
+            "wrong fund draft status error"
+        );
+    }
+
+    function testFundAwardRejectsAwardThatIsAlreadyFinalized() public {
+        bytes32 awardId = keccak256("award-fund-finalized");
+        uint256 extraAmount = 1_000000;
+
+        MockUSDC token = prepareFinalizedAwardForRecipient(
+            awardId,
+            address(0xA11CE),
+            400_000000,
+            uint64(block.timestamp),
+            uint64(block.timestamp + 8 days)
+        );
+        token.mint(address(this), extraAmount);
+        token.approve(address(registry), extraAmount);
+
+        (bool success, bytes memory errorData) =
+            address(registry).call(abi.encodeCall(registry.fundAward, (awardId, extraAmount)));
+
+        require(!success, "finalized award fund succeeded");
+        require(
+            errorSelector(errorData)
+                == bytes4(keccak256("InvalidAwardStatus(bytes32,uint8,uint8)")),
+            "wrong fund finalized status error"
+        );
     }
 
     function testFinalizeAwardMarksFundedAwardFinalized() public {

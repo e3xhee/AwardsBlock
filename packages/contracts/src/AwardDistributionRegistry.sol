@@ -140,6 +140,9 @@ contract AwardDistributionRegistry is ReentrancyGuard {
         if (award.organizer != msg.sender) {
             revert UnauthorizedAwardOrganizer(awardId, msg.sender);
         }
+        if (award.status != AwardStatus.Draft) {
+            revert InvalidAwardStatus(awardId, uint8(award.status), uint8(AwardStatus.Draft));
+        }
         if (recipients.length != amounts.length) {
             revert RecipientArrayLengthMismatch();
         }
@@ -174,6 +177,9 @@ contract AwardDistributionRegistry is ReentrancyGuard {
 
         if (award.organizer != msg.sender) {
             revert UnauthorizedAwardOrganizer(awardId, msg.sender);
+        }
+        if (award.status != AwardStatus.ReadyToFund) {
+            revert InvalidAwardStatus(awardId, uint8(award.status), uint8(AwardStatus.ReadyToFund));
         }
 
         award.totalDeposited += amount;
