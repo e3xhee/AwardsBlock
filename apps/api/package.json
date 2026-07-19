@@ -7,7 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
-    "test": "node --no-warnings --import tsx --test src/routes/eventRoutes.test.ts src/routes/authRoutes.test.ts src/routes/projectRoutes.test.ts src/routes/awardRoutes.test.ts src/routes/awardMemberRoutes.test.ts src/routes/claimInviteRoutes.test.ts",
+    "test": "node --no-warnings --import tsx --test src/routes/eventRoutes.test.ts src/routes/authRoutes.test.ts src/routes/projectRoutes.test.ts src/routes/awardRoutes.test.ts src/routes/awardMemberRoutes.test.ts src/routes/claimInviteRoutes.test.ts src/routes/transactionRecordRoutes.test.ts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
