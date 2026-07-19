@@ -44,7 +44,9 @@ type ClaimInviteLookupRow = ClaimInviteRow & {
   member_award_id: string;
   member_display_name: string;
   member_allocation: string;
+  member_wallet_address: string | null;
   member_invite_status: string;
+  member_wallet_connected_at: string | null;
 };
 
 const claimInviteColumns = `
@@ -118,6 +120,23 @@ export function createClaimInviteRouter(database: DatabaseSync) {
       .all(memberOwner.id) as ClaimInviteRow[];
 
     response.json({ invites: invites.map((invite) => toClaimInviteResponse(invite)) });
+  });
+
+  router.post("/claim-invites/:token/connect-wallet", requireSession, (request, response) => {
+    const invite = findValidClaimInviteByToken(database, request.params.token);
+
+    if (!invite) {
+      sendClaimInviteNotFound(response);
+      return;
+    }
+
+    const connected = connectClaimInvite(
+      database,
+      invite,
+      getAuthenticatedSession(request).walletAddress
+    );
+
+    response.json({ invite: toConnectedClaimInviteResponse(connected) });
   });
 
   router.get("/claim-invites/:token", (request, response) => {
@@ -233,7 +252,9 @@ function findValidClaimInviteByToken(
          award_members.award_id AS member_award_id,
          award_members.display_name AS member_display_name,
          award_members.allocation AS member_allocation,
-         award_members.invite_status AS member_invite_status
+         award_members.wallet_address AS member_wallet_address,
+         award_members.invite_status AS member_invite_status,
+         award_members.wallet_connected_at AS member_wallet_connected_at
        FROM claim_invites
        INNER JOIN award_members ON award_members.id = claim_invites.award_member_id
        WHERE claim_invites.token_hash = ?`
@@ -245,6 +266,62 @@ function findValidClaimInviteByToken(
   }
 
   return row;
+}
+
+function findClaimInviteLookupById(
+  database: DatabaseSync,
+  inviteId: string
+): ClaimInviteLookupRow | undefined {
+  return database
+    .prepare(
+      `SELECT
+         claim_invites.id,
+         claim_invites.award_member_id,
+         claim_invites.token_hash,
+         claim_invites.expires_at,
+         claim_invites.used_at,
+         claim_invites.created_at,
+         award_members.id AS member_id,
+         award_members.award_id AS member_award_id,
+         award_members.display_name AS member_display_name,
+         award_members.allocation AS member_allocation,
+         award_members.wallet_address AS member_wallet_address,
+         award_members.invite_status AS member_invite_status,
+         award_members.wallet_connected_at AS member_wallet_connected_at
+       FROM claim_invites
+       INNER JOIN award_members ON award_members.id = claim_invites.award_member_id
+       WHERE claim_invites.id = ?`
+    )
+    .get(inviteId) as ClaimInviteLookupRow | undefined;
+}
+
+function connectClaimInvite(
+  database: DatabaseSync,
+  invite: ClaimInviteLookupRow,
+  walletAddress: string
+): ClaimInviteLookupRow {
+  const connectedAt = nowIso();
+
+  database
+    .prepare(
+      `UPDATE award_members
+       SET wallet_address = ?,
+           invite_status = ?,
+           wallet_connected_at = ?,
+           updated_at = ?
+       WHERE id = ?`
+    )
+    .run(walletAddress, "WalletConnected", connectedAt, connectedAt, invite.award_member_id);
+
+  database.prepare("UPDATE claim_invites SET used_at = ? WHERE id = ?").run(connectedAt, invite.id);
+
+  const connected = findClaimInviteLookupById(database, invite.id);
+
+  if (!connected) {
+    throw new Error("Failed to load connected claim invite");
+  }
+
+  return connected;
 }
 
 function canMutateMember(request: Request, memberOwner: AwardMemberOwnerRow): boolean {
@@ -287,6 +364,25 @@ function toClaimInviteLookupResponse(row: ClaimInviteLookupRow) {
       displayName: row.member_display_name,
       allocation: row.member_allocation,
       inviteStatus: row.member_invite_status
+    }
+  };
+}
+
+function toConnectedClaimInviteResponse(row: ClaimInviteLookupRow) {
+  return {
+    id: row.id,
+    awardMemberId: row.award_member_id,
+    expiresAt: row.expires_at,
+    usedAt: row.used_at,
+    createdAt: row.created_at,
+    member: {
+      id: row.member_id,
+      awardId: row.member_award_id,
+      displayName: row.member_display_name,
+      allocation: row.member_allocation,
+      walletAddress: row.member_wallet_address,
+      inviteStatus: row.member_invite_status,
+      walletConnectedAt: row.member_wallet_connected_at
     }
   };
 }
