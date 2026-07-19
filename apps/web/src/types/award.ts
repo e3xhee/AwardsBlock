@@ -1,4 +1,5 @@
 export type AwardBlockSummary = {
+  id: string;
   eventName: string;
   awardTitle: string;
   projectName: string;
@@ -6,4 +7,5 @@ export type AwardBlockSummary = {
   rewardLabel: string;
   claimProgress: string;
   verified: boolean;
+  href: string;
 };

@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { Router } from "express";
 import { createAwardMemberRouter } from "./awardMemberRoutes.js";
+import { createAwardBlockRouter } from "./awardBlockRoutes.js";
 import { createAwardRouter } from "./awardRoutes.js";
 import { createAuthRouter } from "./authRoutes.js";
 import { createClaimInviteRouter } from "./claimInviteRoutes.js";
@@ -15,6 +16,7 @@ export function createRouter(database: DatabaseSync) {
 
   router.use("/health", healthRouter);
   router.use("/auth", createAuthRouter(database));
+  router.use(createAwardBlockRouter(database));
   router.use(createProfileRouter(database));
   router.use(createTransactionRecordRouter(database));
   router.use(createClaimInviteRouter(database));

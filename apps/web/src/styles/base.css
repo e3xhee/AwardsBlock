@@ -12,12 +12,14 @@
 body {
   margin: 0;
   min-width: 320px;
+  overflow-x: hidden;
 }
 
 .page-shell {
-  width: min(1120px, calc(100% - 32px));
+  width: 100%;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 48px 0;
+  padding: 48px 16px;
 }
 
 .hero-section {
@@ -35,6 +37,7 @@ body {
   max-width: 680px;
   color: #4a5568;
   font-size: 20px;
+  overflow-wrap: anywhere;
 }
 
 .eyebrow {
@@ -50,6 +53,27 @@ body {
   padding: 40px 0;
 }
 
+.section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+
+.section-header h2 {
+  margin: 0;
+}
+
+.section-header .status-badge {
+  justify-self: start;
+}
+
+.award-block-list {
+  display: grid;
+  gap: 16px;
+}
+
 .award-card {
   display: grid;
   gap: 24px;
@@ -63,6 +87,7 @@ body {
 .award-card h3 {
   margin: 0 0 8px;
   font-size: 28px;
+  overflow-wrap: anywhere;
 }
 
 .award-card__meta {
@@ -83,6 +108,12 @@ body {
 
 .award-card__meta dd {
   margin: 0;
+  font-weight: 700;
+}
+
+.text-link {
+  width: fit-content;
+  color: #1d2433;
   font-weight: 700;
 }
 
@@ -284,6 +315,10 @@ body {
 @media (max-width: 720px) {
   .award-card {
     grid-template-columns: 1fr;
+  }
+
+  .section-header {
+    display: grid;
   }
 
   .profile-hero,

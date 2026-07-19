@@ -1,4 +1,5 @@
 import "./styles/base.css";
+import { mountHomePage } from "./pages/HomePage";
 import { mountProfilePage } from "./pages/ProfilePage";
 import { getProfileWalletAddress, renderRoute } from "./router/router";
 
@@ -21,6 +22,11 @@ async function mountRoute(root: ParentNode, pathname: string): Promise<void> {
 
   if (profileWalletAddress) {
     await mountProfilePage(root, profileWalletAddress);
+    return;
+  }
+
+  if (pathname === "/") {
+    await mountHomePage(root);
   }
 }
 
