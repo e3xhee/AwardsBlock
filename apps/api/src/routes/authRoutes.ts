@@ -1,27 +1,26 @@
-import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import { Router } from "express";
 import type { Response } from "express";
 import { isAddress, verifyMessage } from "viem";
 import type { Address, Hex } from "viem";
 import { createAuthNonce, createSignInMessage } from "../auth/nonce.js";
+import {
+  clearSessionCookie,
+  createSession,
+  deleteSession,
+  findSession,
+  getSessionCookieName,
+  setSessionCookie
+} from "../auth/session.js";
 import { nowIso } from "../utils/time.js";
 
 const nonceTtlMilliseconds = 5 * 60 * 1000;
-const sessionTtlMilliseconds = 7 * 24 * 60 * 60 * 1000;
 
 type AuthNonceRow = {
   wallet_address: string;
   nonce: string;
   expires_at: string;
   used_at: string | null;
-};
-
-type SessionRow = {
-  id: string;
-  wallet_address: string;
-  expires_at: string;
-  created_at: string;
 };
 
 export function createAuthRouter(database: DatabaseSync) {
@@ -86,13 +85,15 @@ export function createAuthRouter(database: DatabaseSync) {
       return;
     }
 
-    const session = createSession(database, input.walletAddress, input.nonce);
-    setSessionCookie(response, session.id, session.expires_at);
+    markNonceUsed(database, input.walletAddress, input.nonce);
+
+    const session = createSession(database, input.walletAddress);
+    setSessionCookie(response, session.id, session.expiresAt);
 
     response.status(201).json({
       session: {
-        walletAddress: session.wallet_address,
-        expiresAt: session.expires_at
+        walletAddress: session.walletAddress,
+        expiresAt: session.expiresAt
       }
     });
   });
@@ -115,8 +116,8 @@ export function createAuthRouter(database: DatabaseSync) {
 
     response.json({
       session: {
-        walletAddress: session.wallet_address,
-        expiresAt: session.expires_at
+        walletAddress: session.walletAddress,
+        expiresAt: session.expiresAt
       }
     });
   });
@@ -125,7 +126,7 @@ export function createAuthRouter(database: DatabaseSync) {
     const sessionId = request.cookies?.[getSessionCookieName()];
 
     if (sessionId) {
-      database.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
+      deleteSession(database, sessionId);
     }
 
     clearSessionCookie(response);
@@ -192,84 +193,14 @@ function findUsableNonce(
   return row;
 }
 
-function createSession(database: DatabaseSync, walletAddress: string, nonce: string): SessionRow {
-  const sessionId = randomUUID();
-  const createdAt = nowIso();
-  const expiresAt = new Date(Date.now() + sessionTtlMilliseconds).toISOString();
-
+function markNonceUsed(database: DatabaseSync, walletAddress: string, nonce: string): void {
   database
     .prepare(
       `UPDATE auth_nonces
        SET used_at = ?
        WHERE wallet_address = ? AND nonce = ?`
     )
-    .run(createdAt, walletAddress, nonce);
-
-  database
-    .prepare(
-      `INSERT INTO sessions (
-        id,
-        wallet_address,
-        expires_at,
-        created_at
-      ) VALUES (?, ?, ?, ?)`
-    )
-    .run(sessionId, walletAddress, expiresAt, createdAt);
-
-  return {
-    id: sessionId,
-    wallet_address: walletAddress,
-    expires_at: expiresAt,
-    created_at: createdAt
-  };
-}
-
-function findSession(database: DatabaseSync, sessionId: string): SessionRow | undefined {
-  const session = database
-    .prepare(
-      `SELECT id, wallet_address, expires_at, created_at
-       FROM sessions
-       WHERE id = ?`
-    )
-    .get(sessionId) as SessionRow | undefined;
-
-  if (!session) {
-    return undefined;
-  }
-
-  if (Date.parse(session.expires_at) <= Date.now()) {
-    database.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
-    return undefined;
-  }
-
-  return session;
-}
-
-function setSessionCookie(response: Response, sessionId: string, expiresAt: string): void {
-  response.cookie(getSessionCookieName(), sessionId, {
-    ...getSessionCookieOptions(),
-    expires: new Date(expiresAt)
-  });
-}
-
-function clearSessionCookie(response: Response): void {
-  response.cookie(getSessionCookieName(), "", {
-    ...getSessionCookieOptions(),
-    maxAge: 0
-  });
-}
-
-function getSessionCookieName(): string {
-  return process.env.SESSION_COOKIE_NAME ?? "awardblock_session";
-}
-
-function getSessionCookieOptions() {
-  return {
-    httpOnly: true,
-    sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
-    path: "/"
-  };
+    .run(nowIso(), walletAddress, nonce);
 }
 
 function sendAuthRequired(response: Response): void {

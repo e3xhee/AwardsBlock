@@ -3,6 +3,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { Router } from "express";
 import type { Response } from "express";
 import { z } from "zod";
+import { createRequireSession, getAuthenticatedSession } from "../middleware/authMiddleware.js";
 import { nowIso } from "../utils/time.js";
 
 const eventStatuses = ["Draft", "Published", "Completed", "Archived"] as const;
@@ -22,7 +23,6 @@ const nullableTextSchema = z.preprocess(
 
 const createEventSchema = z
   .object({
-    organizerWallet: z.string().trim().min(1),
     name: z.string().trim().min(1),
     description: z.string().trim().min(1),
     startDate: dateStringSchema,
@@ -46,7 +46,6 @@ const createEventSchema = z
 
 const updateEventSchema = z
   .object({
-    organizerWallet: z.string().trim().min(1).optional(),
     name: z.string().trim().min(1).optional(),
     description: z.string().trim().min(1).optional(),
     startDate: dateStringSchema.optional(),
@@ -59,7 +58,9 @@ const updateEventSchema = z
   })
   .strict();
 
-type CreateEventInput = z.infer<typeof createEventSchema>;
+type CreateEventInput = z.infer<typeof createEventSchema> & {
+  organizerWallet: string;
+};
 type UpdateEventInput = z.infer<typeof updateEventSchema>;
 
 type EventRow = {
@@ -96,8 +97,10 @@ const eventColumns = `
 
 export function createEventRouter(database: DatabaseSync) {
   const router = Router();
+  const requireSession = createRequireSession(database);
 
-  router.post("/", (request, response) => {
+  router.post("/", requireSession, (request, response) => {
+    const session = getAuthenticatedSession(request);
     const parsedEvent = createEventSchema.safeParse(request.body);
 
     if (!parsedEvent.success) {
@@ -107,7 +110,10 @@ export function createEventRouter(database: DatabaseSync) {
       return;
     }
 
-    const created = insertEvent(database, parsedEvent.data);
+    const created = insertEvent(database, {
+      ...parsedEvent.data,
+      organizerWallet: session.walletAddress
+    });
     response.status(201).json({ event: toEventResponse(created) });
   });
 
@@ -130,11 +136,17 @@ export function createEventRouter(database: DatabaseSync) {
     response.json({ event: toEventResponse(event) });
   });
 
-  router.patch("/:id", (request, response) => {
+  router.patch("/:id", requireSession, (request, response) => {
+    const session = getAuthenticatedSession(request);
     const existing = findEvent(database, request.params.id);
 
     if (!existing) {
       sendEventNotFound(response);
+      return;
+    }
+
+    if (existing.organizer_wallet !== session.walletAddress) {
+      sendError(response, 403, "EVENT_FORBIDDEN", "Event can only be changed by its organizer");
       return;
     }
 
@@ -159,7 +171,20 @@ export function createEventRouter(database: DatabaseSync) {
     response.json({ event: toEventResponse(updated) });
   });
 
-  router.delete("/:id", (request, response) => {
+  router.delete("/:id", requireSession, (request, response) => {
+    const session = getAuthenticatedSession(request);
+    const existing = findEvent(database, request.params.id);
+
+    if (!existing) {
+      sendEventNotFound(response);
+      return;
+    }
+
+    if (existing.organizer_wallet !== session.walletAddress) {
+      sendError(response, 403, "EVENT_FORBIDDEN", "Event can only be changed by its organizer");
+      return;
+    }
+
     const result = database.prepare("DELETE FROM events WHERE id = ?").run(request.params.id);
 
     if (Number(result.changes) === 0) {
@@ -225,7 +250,6 @@ function updateEvent(
   existing: EventRow,
   patch: UpdateEventInput
 ): EventRow | null {
-  const organizerWallet = patch.organizerWallet ?? existing.organizer_wallet;
   const name = patch.name ?? existing.name;
   const description = patch.description ?? existing.description;
   const startDate = patch.startDate ?? existing.start_date;
@@ -245,8 +269,7 @@ function updateEvent(
   database
     .prepare(
       `UPDATE events
-       SET organizer_wallet = ?,
-           name = ?,
+       SET name = ?,
            description = ?,
            start_date = ?,
            end_date = ?,
@@ -259,7 +282,6 @@ function updateEvent(
        WHERE id = ?`
     )
     .run(
-      organizerWallet,
       name,
       description,
       startDate,

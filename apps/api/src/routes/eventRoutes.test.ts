@@ -3,13 +3,19 @@ import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
+import { privateKeyToAccount } from "viem/accounts";
 import { createApp } from "../app.js";
 import { initializeDatabase } from "../database/connection.js";
 
 const jsonHeaders = { "content-type": "application/json" };
+const organizerAccount = privateKeyToAccount(
+  "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+);
+const otherAccount = privateKeyToAccount(
+  "0x1111111111111111111111111111111111111111111111111111111111111111"
+);
 
 const eventInput = {
-  organizerWallet: "0x1111111111111111111111111111111111111111",
   name: "Seoul Demo Day",
   description: "Demo day for builder award submissions",
   startDate: "2026-08-01T09:00:00.000Z",
@@ -33,6 +39,13 @@ type EventResponse = {
     status: string;
     createdAt: string;
     updatedAt: string;
+  };
+};
+
+type NonceResponse = {
+  nonce: {
+    nonce: string;
+    message: string;
   };
 };
 
@@ -69,18 +82,59 @@ async function readJson<T>(response: { json: () => Promise<unknown> }): Promise<
   return (await response.json()) as T;
 }
 
-test("events can be created, read, listed, updated, and deleted", async () => {
+async function signIn(baseUrl: string, account: typeof organizerAccount): Promise<string> {
+  const nonceResponse = await fetch(`${baseUrl}/auth/nonce`, {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify({ walletAddress: account.address })
+  });
+
+  assert.equal(nonceResponse.status, 201);
+  const nonce = await readJson<NonceResponse>(nonceResponse);
+  const signature = await account.signMessage({ message: nonce.nonce.message });
+
+  const sessionResponse = await fetch(`${baseUrl}/auth/session`, {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify({
+      walletAddress: account.address,
+      nonce: nonce.nonce.nonce,
+      signature
+    })
+  });
+
+  assert.equal(sessionResponse.status, 201);
+  const setCookie = sessionResponse.headers.get("set-cookie");
+
+  if (setCookie === null) {
+    assert.fail("Expected set-cookie header");
+  }
+
+  return setCookie.split(";")[0] ?? "";
+}
+
+test("authenticated organizers can create, update, and delete their events", async () => {
   await withApi(async (baseUrl) => {
-    const createResponse = await fetch(`${baseUrl}/events`, {
+    const anonymousCreateResponse = await fetch(`${baseUrl}/events`, {
       method: "POST",
       headers: jsonHeaders,
+      body: JSON.stringify(eventInput)
+    });
+    assert.equal(anonymousCreateResponse.status, 401);
+
+    const organizerCookie = await signIn(baseUrl, organizerAccount);
+    const otherCookie = await signIn(baseUrl, otherAccount);
+
+    const createResponse = await fetch(`${baseUrl}/events`, {
+      method: "POST",
+      headers: { ...jsonHeaders, cookie: organizerCookie },
       body: JSON.stringify(eventInput)
     });
 
     assert.equal(createResponse.status, 201);
     const created = await readJson<EventResponse>(createResponse);
     assert.equal(created.event.name, eventInput.name);
-    assert.equal(created.event.organizerWallet, eventInput.organizerWallet);
+    assert.equal(created.event.organizerWallet, organizerAccount.address.toLowerCase());
     assert.equal(created.event.status, "Draft");
     assert.equal(typeof created.event.id, "string");
 
@@ -97,7 +151,7 @@ test("events can be created, read, listed, updated, and deleted", async () => {
 
     const updateResponse = await fetch(`${baseUrl}/events/${created.event.id}`, {
       method: "PATCH",
-      headers: jsonHeaders,
+      headers: { ...jsonHeaders, cookie: organizerCookie },
       body: JSON.stringify({ name: "Seoul Builder Demo Day", status: "Published" })
     });
 
@@ -106,8 +160,27 @@ test("events can be created, read, listed, updated, and deleted", async () => {
     assert.equal(updated.event.name, "Seoul Builder Demo Day");
     assert.equal(updated.event.status, "Published");
 
-    const deleteResponse = await fetch(`${baseUrl}/events/${created.event.id}`, {
+    const forbiddenUpdateResponse = await fetch(`${baseUrl}/events/${created.event.id}`, {
+      method: "PATCH",
+      headers: { ...jsonHeaders, cookie: otherCookie },
+      body: JSON.stringify({ name: "Other Wallet Update" })
+    });
+    assert.equal(forbiddenUpdateResponse.status, 403);
+
+    const anonymousDeleteResponse = await fetch(`${baseUrl}/events/${created.event.id}`, {
       method: "DELETE"
+    });
+    assert.equal(anonymousDeleteResponse.status, 401);
+
+    const forbiddenDeleteResponse = await fetch(`${baseUrl}/events/${created.event.id}`, {
+      method: "DELETE",
+      headers: { cookie: otherCookie }
+    });
+    assert.equal(forbiddenDeleteResponse.status, 403);
+
+    const deleteResponse = await fetch(`${baseUrl}/events/${created.event.id}`, {
+      method: "DELETE",
+      headers: { cookie: organizerCookie }
     });
 
     assert.equal(deleteResponse.status, 204);
@@ -119,9 +192,10 @@ test("events can be created, read, listed, updated, and deleted", async () => {
 
 test("event creation rejects invalid date ranges", async () => {
   await withApi(async (baseUrl) => {
+    const organizerCookie = await signIn(baseUrl, organizerAccount);
     const response = await fetch(`${baseUrl}/events`, {
       method: "POST",
-      headers: jsonHeaders,
+      headers: { ...jsonHeaders, cookie: organizerCookie },
       body: JSON.stringify({
         ...eventInput,
         startDate: "2026-08-02T09:00:00.000Z",
