@@ -201,6 +201,7 @@ body {
 .profile-stat strong {
   font-size: 30px;
   line-height: 1;
+  overflow-wrap: anywhere;
 }
 
 .profile-awards {
@@ -278,6 +279,154 @@ body {
 
 .claim-transaction-list small {
   color: #4a5568;
+  overflow-wrap: anywhere;
+}
+
+.award-detail-page {
+  display: grid;
+  gap: 28px;
+}
+
+.award-detail-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 40px 0 24px;
+  border-bottom: 1px solid #d6dbe7;
+}
+
+.award-detail-hero h1 {
+  margin: 0;
+  font-size: 40px;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.award-detail-hero .status-badge,
+.award-detail-summary .status-badge {
+  justify-self: start;
+}
+
+.award-detail-content {
+  display: grid;
+  gap: 24px;
+}
+
+.award-detail-summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.award-detail-summary h2 {
+  margin: 0 0 8px;
+  font-size: 34px;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.award-detail-summary p {
+  margin: 0;
+  color: #4a5568;
+  overflow-wrap: anywhere;
+}
+
+.detail-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.detail-section {
+  display: grid;
+  gap: 14px;
+  padding-top: 24px;
+  border-top: 1px solid #d6dbe7;
+}
+
+.detail-section h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.detail-section p {
+  max-width: 820px;
+  margin: 0;
+  color: #4a5568;
+  overflow-wrap: anywhere;
+}
+
+.detail-metadata {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.detail-metadata div {
+  display: grid;
+  gap: 4px;
+}
+
+.detail-metadata dt {
+  color: #687385;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.detail-metadata dd {
+  margin: 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.award-member-list {
+  display: grid;
+  gap: 12px;
+}
+
+.award-member-row {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(0, 1.3fr);
+  padding: 18px;
+  border: 1px solid #d6dbe7;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.award-member-row > div {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+
+.award-member-row span,
+.award-member-row dd {
+  overflow-wrap: anywhere;
+}
+
+.award-member-row span {
+  color: #4a5568;
+}
+
+.award-member-row dl {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+}
+
+.award-member-row dt {
+  color: #687385;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.award-member-row dd {
+  margin: 0;
+  font-weight: 700;
 }
 
 .profile-loading,
@@ -327,8 +476,16 @@ body {
   }
 
   .profile-summary,
-  .profile-award__meta {
+  .profile-award__meta,
+  .detail-grid,
+  .award-member-row,
+  .award-member-row dl {
     grid-template-columns: 1fr;
+  }
+
+  .award-detail-hero,
+  .award-detail-summary {
+    display: grid;
   }
 
   .claim-transaction-list li {

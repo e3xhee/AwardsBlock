@@ -95,6 +95,73 @@ type AwardBlockListResponse = {
   }>;
 };
 
+type AwardBlockDetailResponse = {
+  awardBlock: {
+    id: string;
+    organizerWallet: string;
+    event: {
+      id: string;
+      name: string;
+      description: string;
+      startDate: string;
+      endDate: string;
+      location: string | null;
+      officialUrl: string | null;
+    };
+    project: {
+      id: string;
+      name: string;
+      tagline: string;
+      description: string;
+      githubUrl: string | null;
+      demoUrl: string | null;
+    };
+    award: {
+      id: string;
+      title: string;
+      rank: string | null;
+      reason: string | null;
+      judgingSummary: string | null;
+      status: string;
+      rewardTokenSymbol: string;
+      rewardTokenDecimals: number;
+      totalReward: string;
+      claimStart: string;
+      claimEnd: string;
+      metadataUri: string | null;
+      metadataHash: string | null;
+      contractAwardId: string | null;
+      createTxHash: string | null;
+      fundTxHash: string | null;
+      finalizeTxHash: string | null;
+    };
+    members: Array<{
+      id: string;
+      displayName: string;
+      walletAddress: string | null;
+      allocation: string;
+      inviteStatus: string;
+      walletConnectedAt: string | null;
+      claimedAt: string | null;
+      claimTxHash: string | null;
+    }>;
+    transactions: Array<{
+      id: string;
+      transactionType: string;
+      walletAddress: string;
+      txHash: string;
+      blockNumber: number | null;
+      createdAt: string;
+    }>;
+    claimStats: {
+      recipientCount: number;
+      claimedCount: number;
+    };
+    createdAt: string;
+    updatedAt: string;
+  };
+};
+
 async function withApi(run: (baseUrl: string) => Promise<void>): Promise<void> {
   const database = new DatabaseSync(":memory:");
   initializeDatabase(database);
@@ -226,6 +293,30 @@ async function createAwardMember(
   return created.member.id;
 }
 
+async function createTransactionRecord(
+  baseUrl: string,
+  cookie: string,
+  awardId: string,
+  transactionType: "AwardFunded" | "AwardClaimed",
+  txHash: string,
+  walletAddress = organizerAccount.address
+): Promise<string> {
+  const response = await fetch(`${baseUrl}/awards/${awardId}/transactions`, {
+    method: "POST",
+    headers: { ...jsonHeaders, cookie },
+    body: JSON.stringify({
+      transactionType,
+      walletAddress,
+      txHash,
+      blockNumber: 123456
+    })
+  });
+
+  assert.equal(response.status, 201);
+  const created = await readJson<IdResponse<"transaction">>(response);
+  return created.transaction.id;
+}
+
 test("public award blocks include latest award summaries and claim stats", async () => {
   await withApi(async (baseUrl) => {
     const cookie = await signIn(baseUrl);
@@ -263,6 +354,65 @@ test("public award blocks include latest award summaries and claim stats", async
     assert.equal(awardBlock.claimStats.recipientCount, 2);
     assert.equal(awardBlock.claimStats.claimedCount, 1);
     assert.equal(typeof awardBlock.createdAt, "string");
+  });
+});
+
+test("public award block detail includes members and transactions", async () => {
+  await withApi(async (baseUrl) => {
+    const cookie = await signIn(baseUrl);
+    const eventId = await createEvent(baseUrl, cookie);
+    const projectId = await createProject(baseUrl, cookie, eventId);
+    const awardId = await createAward(baseUrl, cookie, projectId);
+    const claimedMemberId = await createAwardMember(baseUrl, cookie, awardId, "Ada Lee", "Claimed");
+    const pendingMemberId = await createAwardMember(baseUrl, cookie, awardId, "Grace Park", "Pending");
+    const transactionId = await createTransactionRecord(
+      baseUrl,
+      cookie,
+      awardId,
+      "AwardFunded",
+      "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    );
+
+    const response = await fetch(`${baseUrl}/award-blocks/${awardId}`);
+    assert.equal(response.status, 200);
+    const payload = await readJson<AwardBlockDetailResponse>(response);
+
+    assert.equal(payload.awardBlock.id, awardId);
+    assert.equal(payload.awardBlock.organizerWallet, organizerAccount.address.toLowerCase());
+    assert.equal(payload.awardBlock.event.id, eventId);
+    assert.equal(payload.awardBlock.event.name, eventInput.name);
+    assert.equal(payload.awardBlock.event.description, eventInput.description);
+    assert.equal(payload.awardBlock.event.location, eventInput.location);
+    assert.equal(payload.awardBlock.event.officialUrl, eventInput.officialUrl);
+    assert.equal(payload.awardBlock.project.id, projectId);
+    assert.equal(payload.awardBlock.project.name, projectInput.name);
+    assert.equal(payload.awardBlock.project.tagline, projectInput.tagline);
+    assert.equal(payload.awardBlock.project.githubUrl, projectInput.githubUrl);
+    assert.equal(payload.awardBlock.project.demoUrl, projectInput.demoUrl);
+    assert.equal(payload.awardBlock.award.title, awardInput.title);
+    assert.equal(payload.awardBlock.award.reason, awardInput.reason);
+    assert.equal(payload.awardBlock.award.judgingSummary, awardInput.judgingSummary);
+    assert.equal(payload.awardBlock.award.claimStart, awardInput.claimStart);
+    assert.equal(payload.awardBlock.award.claimEnd, awardInput.claimEnd);
+    assert.equal(payload.awardBlock.award.metadataUri, awardInput.metadataUri);
+    assert.equal(payload.awardBlock.members.length, 2);
+    assert.equal(payload.awardBlock.members[0]?.id, pendingMemberId);
+    assert.equal(payload.awardBlock.members[1]?.id, claimedMemberId);
+    assert.equal(payload.awardBlock.members[1]?.walletAddress, "0x3333333333333333333333333333333333333333");
+    assert.equal(payload.awardBlock.transactions.length, 1);
+    assert.equal(payload.awardBlock.transactions[0]?.id, transactionId);
+    assert.equal(payload.awardBlock.transactions[0]?.transactionType, "AwardFunded");
+    assert.equal(payload.awardBlock.claimStats.recipientCount, 2);
+    assert.equal(payload.awardBlock.claimStats.claimedCount, 1);
+  });
+});
+
+test("public award block detail returns not found for unknown ids", async () => {
+  await withApi(async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/award-blocks/missing-award`);
+    assert.equal(response.status, 404);
+    const payload = await readJson<{ error: { code: string } }>(response);
+    assert.equal(payload.error.code, "AWARD_BLOCK_NOT_FOUND");
   });
 });
 

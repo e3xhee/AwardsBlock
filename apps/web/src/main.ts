@@ -1,7 +1,8 @@
 import "./styles/base.css";
+import { mountAwardDetailPage } from "./pages/AwardDetailPage";
 import { mountHomePage } from "./pages/HomePage";
 import { mountProfilePage } from "./pages/ProfilePage";
-import { getProfileWalletAddress, renderRoute } from "./router/router";
+import { getAwardId, getProfileWalletAddress, renderRoute } from "./router/router";
 
 const app = document.querySelector<HTMLDivElement>("#app");
 
@@ -18,7 +19,13 @@ function render() {
 }
 
 async function mountRoute(root: ParentNode, pathname: string): Promise<void> {
+  const awardId = getAwardId(pathname);
   const profileWalletAddress = getProfileWalletAddress(pathname);
+
+  if (awardId) {
+    await mountAwardDetailPage(root, awardId);
+    return;
+  }
 
   if (profileWalletAddress) {
     await mountProfilePage(root, profileWalletAddress);

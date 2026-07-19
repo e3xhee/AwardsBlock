@@ -9,11 +9,25 @@ import { renderProjectDetailPage } from "../pages/ProjectDetailPage";
 export function renderRoute(pathname: string): string {
   if (pathname.startsWith("/events/")) return renderEventDetailPage();
   if (pathname.startsWith("/projects/")) return renderProjectDetailPage();
-  if (pathname.startsWith("/awards/")) return renderAwardDetailPage();
+  if (pathname.startsWith("/awards/")) return renderAwardDetailPage(getAwardId(pathname));
   if (pathname.startsWith("/profile/")) return renderProfilePage(getProfileWalletAddress(pathname));
   if (pathname.startsWith("/claim/")) return renderClaimInvitePage();
   if (pathname === "/organizer") return renderOrganizerPage();
   return renderHomePage();
+}
+
+export function getAwardId(pathname: string): string | null {
+  const match = pathname.match(/^\/awards\/([^/]+)$/);
+
+  if (!match) {
+    return null;
+  }
+
+  try {
+    return decodeURIComponent(match[1] ?? "");
+  } catch {
+    return match[1] ?? "";
+  }
 }
 
 export function getProfileWalletAddress(pathname: string): string | null {
