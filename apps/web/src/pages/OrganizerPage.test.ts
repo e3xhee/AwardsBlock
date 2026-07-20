@@ -2,6 +2,7 @@ import {
   buildOrganizerAwardPayloads,
   createOrganizerAwardSetup,
   renderOrganizerPage,
+  renderOrganizerSuccess,
   type OrganizerAwardDraft
 } from "./OrganizerPage";
 import { buildAwardContractId, type ContractWriteProvider } from "../blockchain/awardRegistry";
@@ -215,4 +216,14 @@ if (
   })
 ) {
   throw new Error("Expected AwardRegistered transaction record");
+}
+
+const successHtml = renderOrganizerSuccess(result);
+
+if (!successHtml.includes("펀딩 진행하기")) {
+  throw new Error("Expected funding CTA after organizer setup");
+}
+
+if (!successHtml.includes("Approve token / Fund award")) {
+  throw new Error("Expected funding next-step guidance");
 }

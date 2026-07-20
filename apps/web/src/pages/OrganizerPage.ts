@@ -602,10 +602,11 @@ function renderOrganizerProgress(step: string): string {
   `;
 }
 
-function renderOrganizerSuccess(result: OrganizerSubmissionResult): string {
+export function renderOrganizerSuccess(result: OrganizerSubmissionResult): string {
   return `
     <p class="eyebrow">생성 완료</p>
     <h2>${escapeHtml(result.awardTitle)}</h2>
+    <p>어워드가 온체인에 등록됐습니다. 상세 페이지에서 Approve token / Fund award를 이어서 실행하세요.</p>
     <dl class="organizer-result-list">
       <div><dt>수령자</dt><dd>${escapeHtml(result.recipientName)}</dd></div>
       <div><dt>Event ID</dt><dd>${escapeHtml(result.eventId)}</dd></div>
@@ -616,7 +617,7 @@ function renderOrganizerSuccess(result: OrganizerSubmissionResult): string {
       <div><dt>Invite ID</dt><dd>${escapeHtml(result.inviteId)}</dd></div>
     </dl>
     <div class="organizer-result-actions">
-      <a class="text-link" href="${escapeHtml(result.awardPath)}">어워드 보기</a>
+      <a class="text-link" href="${escapeHtml(result.awardPath)}">펀딩 진행하기</a>
       <a class="text-link" href="${escapeHtml(result.claimPath)}">클레임 초대 열기</a>
     </div>
   `;
