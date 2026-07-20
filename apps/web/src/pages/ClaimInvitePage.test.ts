@@ -1,9 +1,12 @@
 import type { AwardBlockDetail } from "./AwardDetailPage";
 import {
+  executeClaimInviteAction,
   mapClaimInviteToViewModel,
   renderClaimInvitePage,
+  type ClaimInviteActionApi,
   type ClaimInviteLookupResponse
 } from "./ClaimInvitePage";
+import { buildAwardContractId, type ContractWriteProvider } from "../blockchain/awardRegistry";
 
 const inviteResponse: ClaimInviteLookupResponse = {
   invite: {
@@ -97,11 +100,11 @@ if (invitedViewModel.allocationLabel !== "0.6 MNT") {
   throw new Error("Expected formatted allocation");
 }
 
-if (invitedViewModel.walletLabel !== "Not connected") {
+if (invitedViewModel.walletLabel !== "미연결") {
   throw new Error("Expected missing wallet label");
 }
 
-if (invitedViewModel.statusLabel !== "Invited") {
+if (invitedViewModel.statusLabel !== "초대됨") {
   throw new Error("Expected invite status label");
 }
 
@@ -142,4 +145,95 @@ if (connectedViewModel.canClaim !== true) {
 
 if (!renderClaimInvitePage("invite-token-1").includes("data-wallet-auth")) {
   throw new Error("Expected claim invite page to render wallet auth controls");
+}
+
+const providerRequests: Array<{ method: string; params?: unknown }> = [];
+const provider: ContractWriteProvider = {
+  async request<TResponse = unknown>({
+    method,
+    params
+  }: {
+    method: string;
+    params?: unknown[] | Record<string, unknown>;
+  }) {
+    providerRequests.push({ method, params });
+    return "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" as TResponse;
+  }
+};
+
+const posts: Array<{ path: string; body: unknown }> = [];
+const api: ClaimInviteActionApi = {
+  async post<TResponse, TBody = unknown>(path: string, body?: TBody) {
+    posts.push({ path, body });
+
+    if (path === "/award-members/member-1/claim") {
+      return {
+        member: {
+          id: "member-1",
+          walletAddress: "0x3333333333333333333333333333333333333333",
+          inviteStatus: "Claimed",
+          claimedAt: "2026-08-04T00:00:00.000Z",
+          claimTxHash: "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      } as TResponse;
+    }
+
+    if (path === "/awards/award-1/transactions") {
+      return { transaction: { id: "transaction-1" } } as TResponse;
+    }
+
+    throw new Error(`Unexpected POST ${path}`);
+  }
+};
+
+const claimResult = await executeClaimInviteAction({
+  awardId: "award-1",
+  memberId: "member-1",
+  contractAwardId: "contract-award-1",
+  from: "0x3333333333333333333333333333333333333333",
+  registryAddress: "0x1111111111111111111111111111111111111111",
+  provider,
+  api
+});
+
+if (claimResult.txHash !== "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc") {
+  throw new Error("Expected on-chain claim transaction hash");
+}
+
+if (providerRequests[0]?.method !== "eth_sendTransaction") {
+  throw new Error("Expected claim wallet transaction request");
+}
+
+if (
+  !JSON.stringify(providerRequests[0]?.params).includes(
+    buildAwardContractId("contract-award-1").slice(2)
+  )
+) {
+  throw new Error("Expected claim request to encode contract award id");
+}
+
+if (
+  JSON.stringify(posts[0]) !==
+  JSON.stringify({
+    path: "/award-members/member-1/claim",
+    body: {
+      claimTxHash: "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    }
+  })
+) {
+  throw new Error("Expected member claim record with wallet tx hash");
+}
+
+if (
+  JSON.stringify(posts[1]) !==
+  JSON.stringify({
+    path: "/awards/award-1/transactions",
+    body: {
+      transactionType: "AwardClaimed",
+      walletAddress: "0x3333333333333333333333333333333333333333",
+      txHash: "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    }
+  })
+) {
+  throw new Error("Expected AwardClaimed transaction record");
 }

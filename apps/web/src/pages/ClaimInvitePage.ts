@@ -4,6 +4,14 @@ import {
   renderWalletConnectButton
 } from "../components/WalletConnectButton";
 import type { AwardBlockDetail, AwardBlockDetailResponse } from "./AwardDetailPage";
+import {
+  buildClaimAwardRequest,
+  sendContractWrite,
+  type ContractWriteProvider
+} from "../blockchain/awardRegistry";
+import { chainConfig } from "../blockchain/config";
+import { getBrowserEthereumProvider } from "../auth/walletAuth";
+import { walletState } from "../state/appState";
 import { formatTokenAmount, shortenAddress } from "../utils/format";
 
 export type ClaimInviteLookupResponse = {
@@ -41,11 +49,16 @@ type ClaimedAwardMemberResponse = {
   };
 };
 
+export type ClaimInviteActionApi = {
+  post<TResponse, TBody = unknown>(path: string, body?: TBody): Promise<TResponse>;
+};
+
 type ClaimInviteViewModel = {
   token: string;
   inviteId: string;
   awardId: string;
   memberId: string;
+  contractAwardId: string | null;
   eventName: string;
   projectName: string;
   awardTitle: string;
@@ -60,16 +73,20 @@ type ClaimInviteViewModel = {
   claimTxLabel: string;
 };
 
+const defaultClaimInviteActionApi: ClaimInviteActionApi = {
+  post: apiPost
+};
+
 export function renderClaimInvitePage(token: string | null = null): string {
   return `
     <main class="page-shell claim-page">
       <section class="claim-hero">
         <div>
-          <p class="eyebrow">Claim Invite</p>
-          <h1>${token ? "Award Claim" : "Claim unavailable"}</h1>
+          <p class="eyebrow">클레임 초대</p>
+          <h1>${token ? "어워드 리워드 클레임" : "클레임을 사용할 수 없습니다"}</h1>
         </div>
         <div class="page-actions">
-          <span class="status-badge">Recipient</span>
+          <span class="status-badge">수신자</span>
           ${renderWalletConnectButton()}
         </div>
       </section>
@@ -119,6 +136,7 @@ export function mapClaimInviteToViewModel(
     inviteId: invite.id,
     awardId: invite.member.awardId,
     memberId: invite.member.id,
+    contractAwardId: awardBlock.award.contractAwardId,
     eventName: awardBlock.event.name,
     projectName: awardBlock.project.name,
     awardTitle: awardBlock.award.rank
@@ -129,14 +147,65 @@ export function mapClaimInviteToViewModel(
       invite.member.allocation,
       awardBlock.award.rewardTokenDecimals
     )} ${awardBlock.award.rewardTokenSymbol}`,
-    statusLabel: inviteStatus,
-    walletLabel: walletAddress ? shortenAddress(walletAddress) : "Not connected",
+    statusLabel: formatInviteStatusLabel(inviteStatus),
+    walletLabel: walletAddress ? shortenAddress(walletAddress) : "미연결",
     expiresAtLabel: formatDateLabel(invite.expiresAt),
     canConnectWallet: walletAddress === null && inviteStatus !== "Claimed",
     canClaim: walletAddress !== null && inviteStatus === "WalletConnected",
     isClaimed: inviteStatus === "Claimed" || claimTxHash !== null,
-    claimTxLabel: claimTxHash ? shortenAddress(claimTxHash) : "Not recorded"
+    claimTxLabel: claimTxHash ? shortenAddress(claimTxHash) : "기록 없음"
   };
+}
+
+export async function executeClaimInviteAction({
+  awardId,
+  memberId,
+  contractAwardId,
+  from,
+  registryAddress,
+  provider,
+  api = defaultClaimInviteActionApi
+}: {
+  awardId: string;
+  memberId: string;
+  contractAwardId: string | null;
+  from: string;
+  registryAddress: string;
+  provider: ContractWriteProvider;
+  api?: ClaimInviteActionApi;
+}): Promise<{ txHash: string }> {
+  if (!contractAwardId) {
+    throw new Error("CONTRACT_AWARD_ID_REQUIRED");
+  }
+
+  const txHash = await sendContractWrite(
+    provider,
+    buildClaimAwardRequest({
+      from,
+      registryAddress,
+      awardId: contractAwardId
+    })
+  );
+
+  const claimed = await api.post<ClaimedAwardMemberResponse, { claimTxHash: string }>(
+    `/award-members/${encodeURIComponent(memberId)}/claim`,
+    { claimTxHash: txHash }
+  );
+
+  await api.post<
+    { transaction: { id: string } },
+    {
+      transactionType: string;
+      walletAddress: string;
+      txHash: string;
+    }
+  >(`/awards/${encodeURIComponent(awardId)}/transactions`, {
+    transactionType: "AwardClaimed",
+    walletAddress: from,
+    txHash
+  });
+
+  return { txHash: claimed.member.claimTxHash };
 }
 
 function renderInteractiveClaimInvite(
@@ -151,7 +220,7 @@ function renderInteractiveClaimInvite(
   const connectButton = content.querySelector<HTMLButtonElement>("[data-claim-connect]");
   connectButton?.addEventListener("click", async () => {
     connectButton.disabled = true;
-    connectButton.textContent = "Connecting...";
+    connectButton.textContent = "지갑 연결 중...";
 
     try {
       const connected = await apiPost<ConnectedClaimInviteResponse>(
@@ -162,34 +231,50 @@ function renderInteractiveClaimInvite(
       );
       renderInteractiveClaimInvite(content, token, connected.invite, refreshedAward.awardBlock);
     } catch {
-      content.insertAdjacentHTML("afterbegin", renderClaimActionError("Wallet session required"));
+      content.insertAdjacentHTML("afterbegin", renderClaimActionError("지갑 세션이 필요합니다"));
       connectButton.disabled = false;
-      connectButton.textContent = "Attach wallet";
+      connectButton.textContent = "지갑 연결";
     }
   });
 
   const claimForm = content.querySelector<HTMLFormElement>("[data-claim-form]");
   claimForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const form = new FormData(claimForm);
-    const claimTxHash = String(form.get("claimTxHash") ?? "").trim();
     const submitButton = claimForm.querySelector<HTMLButtonElement>("button[type='submit']");
+    const provider = getBrowserEthereumProvider();
+    const from = walletState.address;
+
+    if (!provider || !from || chainConfig.registryAddress === "") {
+      claimForm.insertAdjacentHTML(
+        "beforebegin",
+        renderClaimActionError("지갑 세션과 Registry 컨트랙트 주소가 필요합니다")
+      );
+      return;
+    }
+
     if (submitButton) {
       submitButton.disabled = true;
-      submitButton.textContent = "Recording...";
+      submitButton.textContent = "지갑 승인 대기 중...";
     }
 
     try {
-      const claimed = await apiPost<ClaimedAwardMemberResponse>(
-        `/award-members/${encodeURIComponent(viewModel.memberId)}/claim`,
-        { claimTxHash }
-      );
-      content.innerHTML = renderClaimSuccess(claimed.member.claimTxHash);
+      const result = await executeClaimInviteAction({
+        awardId: viewModel.awardId,
+        memberId: viewModel.memberId,
+        contractAwardId: viewModel.contractAwardId,
+        from,
+        registryAddress: chainConfig.registryAddress,
+        provider
+      });
+      content.innerHTML = renderClaimSuccess(result.txHash);
     } catch {
-      claimForm.insertAdjacentHTML("beforebegin", renderClaimActionError("Claim could not be recorded"));
+      claimForm.insertAdjacentHTML(
+        "beforebegin",
+        renderClaimActionError("클레임 트랜잭션을 완료하지 못했습니다")
+      );
       if (submitButton) {
         submitButton.disabled = false;
-        submitButton.textContent = "Record claim";
+        submitButton.textContent = "리워드 클레임 실행";
       }
     }
   });
@@ -206,13 +291,13 @@ function renderClaimInviteContent(invite: ClaimInviteViewModel): string {
       <span class="status-badge">${escapeHtml(invite.statusLabel)}</span>
     </section>
     <div class="detail-grid">
-      ${renderClaimMetric("Allocation", invite.allocationLabel)}
-      ${renderClaimMetric("Wallet", invite.walletLabel)}
-      ${renderClaimMetric("Expires", invite.expiresAtLabel)}
-      ${renderClaimMetric("Claim tx", invite.claimTxLabel)}
+      ${renderClaimMetric("배정 수량", invite.allocationLabel)}
+      ${renderClaimMetric("지갑", invite.walletLabel)}
+      ${renderClaimMetric("만료일", invite.expiresAtLabel)}
+      ${renderClaimMetric("클레임 tx", invite.claimTxLabel)}
     </div>
     <section class="detail-section">
-      <h2>Recipient Actions</h2>
+      <h2>수신자 작업</h2>
       ${renderClaimActions(invite)}
     </section>
   `;
@@ -231,8 +316,8 @@ function renderClaimActions(invite: ClaimInviteViewModel): string {
   if (invite.isClaimed) {
     return `
       <div class="claim-action-panel">
-        <p class="eyebrow">Claim recorded</p>
-        <h3>Reward claim is complete</h3>
+        <p class="eyebrow">클레임 기록 완료</p>
+        <h3>리워드 클레임이 완료되었습니다</h3>
       </div>
     `;
   }
@@ -240,11 +325,8 @@ function renderClaimActions(invite: ClaimInviteViewModel): string {
   if (invite.canClaim) {
     return `
       <form class="claim-action-panel" data-claim-form>
-        <label>
-          <span>Claim transaction hash</span>
-          <input name="claimTxHash" type="text" placeholder="0x..." required />
-        </label>
-        <button class="button" type="submit">Record claim</button>
+        <p>지갑에서 claim 트랜잭션을 승인하면 tx hash가 자동으로 저장됩니다.</p>
+        <button class="button" type="submit">리워드 클레임 실행</button>
       </form>
     `;
   }
@@ -252,15 +334,15 @@ function renderClaimActions(invite: ClaimInviteViewModel): string {
   if (invite.canConnectWallet) {
     return `
       <div class="claim-action-panel">
-        <p>Sign in with a wallet session above, then attach that wallet to this invite.</p>
-        <button class="button" type="button" data-claim-connect>Attach wallet</button>
+        <p>상단에서 지갑 세션을 만든 뒤 이 초대에 지갑을 연결하세요.</p>
+        <button class="button" type="button" data-claim-connect>지갑 연결</button>
       </div>
     `;
   }
 
   return `
     <div class="claim-action-panel">
-      <p>This invite cannot be claimed from its current state.</p>
+      <p>현재 상태에서는 이 초대를 클레임할 수 없습니다.</p>
     </div>
   `;
 }
@@ -277,8 +359,8 @@ function renderClaimLoading(): string {
 function renderClaimMissingToken(): string {
   return `
     <div class="empty-state">
-      <p class="eyebrow">Missing invite</p>
-      <h2>Claim token is required</h2>
+      <p class="eyebrow">초대 없음</p>
+      <h2>클레임 토큰이 필요합니다</h2>
     </div>
   `;
 }
@@ -286,8 +368,8 @@ function renderClaimMissingToken(): string {
 function renderClaimError(): string {
   return `
     <div class="empty-state empty-state--error">
-      <p class="eyebrow">Invite error</p>
-      <h2>Unable to load claim invite</h2>
+      <p class="eyebrow">초대 오류</p>
+      <h2>클레임 초대를 불러오지 못했습니다</h2>
     </div>
   `;
 }
@@ -295,7 +377,7 @@ function renderClaimError(): string {
 function renderClaimActionError(message: string): string {
   return `
     <div class="empty-state empty-state--error claim-action-error">
-      <p class="eyebrow">Action failed</p>
+      <p class="eyebrow">작업 실패</p>
       <h2>${escapeHtml(message)}</h2>
     </div>
   `;
@@ -304,7 +386,7 @@ function renderClaimActionError(message: string): string {
 function renderClaimSuccess(claimTxHash: string): string {
   return `
     <div class="empty-state">
-      <p class="eyebrow">Claim recorded</p>
+      <p class="eyebrow">클레임 기록 완료</p>
       <h2>${escapeHtml(shortenAddress(claimTxHash))}</h2>
     </div>
   `;
@@ -319,11 +401,20 @@ function formatReward(value: string, decimals: number): string {
 }
 
 function formatDateLabel(value: string): string {
-  return new Intl.DateTimeFormat("en", {
+  return new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
     month: "short",
     day: "2-digit"
   }).format(new Date(value));
+}
+
+function formatInviteStatusLabel(value: string): string {
+  if (value === "Invited") return "초대됨";
+  if (value === "WalletConnected") return "지갑 연결됨";
+  if (value === "Claimed") return "클레임 완료";
+  if (value === "Revoked") return "취소됨";
+
+  return value;
 }
 
 function escapeHtml(value: string): string {
