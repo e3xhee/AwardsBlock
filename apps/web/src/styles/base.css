@@ -109,6 +109,8 @@ body {
 .award-card__meta dd {
   margin: 0;
   font-weight: 700;
+  overflow-wrap: anywhere;
+  text-align: right;
 }
 
 .text-link {
@@ -947,6 +949,15 @@ body {
 @media (max-width: 720px) {
   .award-card {
     grid-template-columns: 1fr;
+  }
+
+  .award-card__meta div {
+    display: grid;
+    gap: 4px;
+  }
+
+  .award-card__meta dd {
+    text-align: left;
   }
 
   .section-header {

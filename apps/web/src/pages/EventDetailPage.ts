@@ -67,10 +67,10 @@ export function renderEventDetailPage(eventId: string | null = null): string {
     <main class="page-shell event-detail-page">
       <section class="event-detail-hero">
         <div>
-          <p class="eyebrow">Event</p>
-          <h1>${eventId ? "Event Detail" : "Event unavailable"}</h1>
+          <p class="eyebrow">이벤트</p>
+          <h1>${eventId ? "이벤트 상세" : "이벤트를 사용할 수 없습니다"}</h1>
         </div>
-        <span class="status-badge">Public</span>
+        <span class="status-badge">공개</span>
       </section>
       <section id="event-detail-content" class="event-detail-content" aria-live="polite">
         ${eventId ? renderEventDetailLoading() : renderEventDetailMissingId()}
@@ -110,10 +110,10 @@ export function mapEventDetailToViewModel(
     id: event.id,
     name: event.name,
     description: event.description,
-    status: event.status,
+    status: formatEventStatusLabel(event.status),
     organizerLabel: shortenAddress(event.organizerWallet),
     dateRangeLabel: `${formatDateLabel(event.startDate)} - ${formatDateLabel(event.endDate)}`,
-    locationLabel: event.location ?? "No location recorded",
+    locationLabel: event.location ?? "장소 기록 없음",
     officialUrl: event.officialUrl,
     socialUrl: event.socialUrl,
     projects: projects.map((project) => ({
@@ -139,20 +139,20 @@ function renderEventDetailContent(event: EventDetailViewModel): string {
       <span class="status-badge">${escapeHtml(event.status)}</span>
     </section>
     <div class="detail-grid">
-      ${renderDetailMetric("Organizer", event.organizerLabel)}
-      ${renderDetailMetric("Schedule", event.dateRangeLabel)}
-      ${renderDetailMetric("Projects", String(event.projects.length))}
-      ${renderDetailMetric("Location", event.locationLabel)}
+      ${renderDetailMetric("주최자", event.organizerLabel)}
+      ${renderDetailMetric("일정", event.dateRangeLabel)}
+      ${renderDetailMetric("프로젝트", String(event.projects.length))}
+      ${renderDetailMetric("장소", event.locationLabel)}
     </div>
     <section class="detail-section">
-      <h2>Event Links</h2>
+      <h2>이벤트 링크</h2>
       <div class="event-link-list">
-        ${renderExternalLink("Official", event.officialUrl)}
-        ${renderExternalLink("Social", event.socialUrl)}
+        ${renderExternalLink("공식 링크", event.officialUrl)}
+        ${renderExternalLink("소셜", event.socialUrl)}
       </div>
     </section>
     <section class="detail-section">
-      <h2>Projects</h2>
+      <h2>프로젝트</h2>
       ${renderEventProjects(event.projects)}
     </section>
   `;
@@ -162,8 +162,8 @@ function renderEventProjects(projects: EventDetailViewModel["projects"]): string
   if (projects.length === 0) {
     return `
       <div class="empty-state">
-        <p class="eyebrow">No projects</p>
-        <h2>No projects registered yet</h2>
+        <p class="eyebrow">프로젝트 없음</p>
+        <h2>아직 등록된 프로젝트가 없습니다</h2>
       </div>
     `;
   }
@@ -184,9 +184,9 @@ function renderEventProject(project: EventDetailViewModel["projects"][number]): 
       </div>
       <p>${escapeHtml(project.description)}</p>
       <div class="event-project-actions">
-        <a class="text-link" href="${escapeHtml(project.href)}">View project</a>
+        <a class="text-link" href="${escapeHtml(project.href)}">프로젝트 보기</a>
         ${renderExternalLink("GitHub", project.githubUrl)}
-        ${renderExternalLink("Demo", project.demoUrl)}
+        ${renderExternalLink("데모", project.demoUrl)}
       </div>
     </article>
   `;
@@ -203,7 +203,7 @@ function renderDetailMetric(label: string, value: string): string {
 
 function renderExternalLink(label: string, href: string | null): string {
   if (!href) {
-    return `<span class="muted-label">${escapeHtml(label)} not recorded</span>`;
+    return `<span class="muted-label">${escapeHtml(label)} 기록 없음</span>`;
   }
 
   return `<a class="text-link" href="${escapeHtml(href)}">${escapeHtml(label)}</a>`;
@@ -221,8 +221,8 @@ function renderEventDetailLoading(): string {
 function renderEventDetailMissingId(): string {
   return `
     <div class="empty-state">
-      <p class="eyebrow">Missing event</p>
-      <h2>Event ID is required</h2>
+      <p class="eyebrow">이벤트 없음</p>
+      <h2>이벤트 ID가 필요합니다</h2>
     </div>
   `;
 }
@@ -230,19 +230,27 @@ function renderEventDetailMissingId(): string {
 function renderEventDetailError(): string {
   return `
     <div class="empty-state empty-state--error">
-      <p class="eyebrow">Event error</p>
-      <h2>Unable to load event detail</h2>
+      <p class="eyebrow">이벤트 오류</p>
+      <h2>이벤트 상세를 불러오지 못했습니다</h2>
     </div>
   `;
 }
 
 function formatDateLabel(value: string): string {
-  return new Intl.DateTimeFormat("en", {
+  return new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
     month: "short",
     day: "2-digit",
     timeZone: "UTC"
   }).format(new Date(value));
+}
+
+function formatEventStatusLabel(value: string): string {
+  if (value === "Draft") return "초안";
+  if (value === "Published") return "공개됨";
+  if (value === "Archived") return "보관됨";
+
+  return value;
 }
 
 function escapeHtml(value: string): string {

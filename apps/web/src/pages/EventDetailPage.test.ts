@@ -53,7 +53,7 @@ if (viewModel.organizerLabel !== "0x0123...4567") {
   throw new Error("Expected shortened organizer wallet");
 }
 
-if (viewModel.dateRangeLabel !== "Aug 01, 2026 - Aug 02, 2026") {
+if (viewModel.dateRangeLabel !== "2026년 8월 01일 - 2026년 8월 02일") {
   throw new Error("Expected formatted event date range");
 }
 
@@ -63,6 +63,14 @@ if (viewModel.locationLabel !== "Seoul") {
 
 if (viewModel.projects[0]?.href !== "/projects/project-1") {
   throw new Error("Expected project detail link");
+}
+
+if (viewModel.status !== "공개됨") {
+  throw new Error("Expected Korean event status label");
+}
+
+if (!renderEventDetailPage("event-1").includes("이벤트 상세")) {
+  throw new Error("Expected Korean event detail title");
 }
 
 if (!renderEventDetailPage("event-1").includes("event-detail-content")) {

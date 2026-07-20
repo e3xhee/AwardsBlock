@@ -99,12 +99,20 @@ if (viewModel.awards[0]?.rewardLabel !== "1 MNT") {
   throw new Error("Expected formatted award reward");
 }
 
-if (viewModel.awards[0]?.claimWindowLabel !== "Aug 02, 2026 - Sep 01, 2026") {
+if (viewModel.awards[0]?.claimWindowLabel !== "2026년 8월 02일 - 2026년 9월 01일") {
   throw new Error("Expected formatted award claim window");
 }
 
-if (viewModel.awards[0]?.verificationLabel !== "Verified") {
+if (viewModel.awards[0]?.verificationLabel !== "검증 완료") {
   throw new Error("Expected verified award label");
+}
+
+if (viewModel.awards[0]?.status !== "클레임 진행 중") {
+  throw new Error("Expected Korean project award status");
+}
+
+if (!renderProjectDetailPage("project-1").includes("프로젝트 상세")) {
+  throw new Error("Expected Korean project detail title");
 }
 
 if (!renderProjectDetailPage("project-1").includes("project-detail-content")) {

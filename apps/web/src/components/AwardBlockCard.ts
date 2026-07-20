@@ -1,7 +1,7 @@
 import type { AwardBlockSummary } from "../types/award";
 
 export function renderAwardBlockCard(award: AwardBlockSummary): string {
-  const verificationLabel = award.verified ? "Verified" : "Needs review";
+  const verificationLabel = award.verified ? "검증 완료" : "검토 필요";
 
   return `
     <article class="award-card">
@@ -11,12 +11,12 @@ export function renderAwardBlockCard(award: AwardBlockSummary): string {
         <strong>${escapeHtml(award.projectName)}</strong>
       </div>
       <dl class="award-card__meta">
-        <div><dt>Organizer</dt><dd>${escapeHtml(award.organizer)}</dd></div>
-        <div><dt>Reward</dt><dd>${escapeHtml(award.rewardLabel)}</dd></div>
-        <div><dt>Claim</dt><dd>${escapeHtml(award.claimProgress)}</dd></div>
-        <div><dt>Status</dt><dd>${verificationLabel}</dd></div>
+        <div><dt>주최자</dt><dd>${escapeHtml(award.organizer)}</dd></div>
+        <div><dt>리워드</dt><dd>${escapeHtml(award.rewardLabel)}</dd></div>
+        <div><dt>클레임</dt><dd>${escapeHtml(award.claimProgress)}</dd></div>
+        <div><dt>상태</dt><dd>${verificationLabel}</dd></div>
       </dl>
-      <a class="text-link" href="${escapeHtml(award.href)}">View award</a>
+      <a class="text-link" href="${escapeHtml(award.href)}">어워드 보기</a>
     </article>
   `;
 }

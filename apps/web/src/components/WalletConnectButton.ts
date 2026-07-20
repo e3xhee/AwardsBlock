@@ -14,9 +14,9 @@ type MountWalletConnectButtonOptions = {
 export function renderWalletConnectButton(): string {
   return `
     <div class="wallet-auth" data-wallet-auth>
-      <span class="wallet-auth__status" data-wallet-status>No wallet session</span>
+      <span class="wallet-auth__status" data-wallet-status>지갑 세션 없음</span>
       <button class="button wallet-auth__button" type="button" data-wallet-connect>
-        Connect wallet
+        지갑 연결
       </button>
     </div>
   `;
@@ -47,8 +47,8 @@ export function mountWalletConnectButton(
 
   button.addEventListener("click", async () => {
     button.disabled = true;
-    button.textContent = "Connecting...";
-    status.textContent = "Awaiting wallet signature";
+    button.textContent = "연결 중...";
+    status.textContent = "지갑 서명 대기 중";
     container.classList.remove("wallet-auth--error");
 
     try {
@@ -62,9 +62,9 @@ export function mountWalletConnectButton(
       );
     } catch {
       container.classList.add("wallet-auth--error");
-      status.textContent = "Wallet connection failed";
+      status.textContent = "지갑 연결 실패";
       button.disabled = false;
-      button.textContent = "Connect wallet";
+      button.textContent = "지갑 연결";
     }
   });
 }
@@ -79,11 +79,11 @@ function renderWalletState(
   button.disabled = false;
 
   if (!address) {
-    status.textContent = "No wallet session";
-    button.textContent = "Connect wallet";
+    status.textContent = "지갑 세션 없음";
+    button.textContent = "지갑 연결";
     return;
   }
 
-  status.textContent = `Connected ${shortenAddress(address)}`;
-  button.textContent = "Switch wallet";
+  status.textContent = `연결됨 ${shortenAddress(address)}`;
+  button.textContent = "지갑 변경";
 }

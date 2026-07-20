@@ -43,17 +43,17 @@ export function renderHomePage(): string {
   return `
     <main class="page-shell">
       <section class="hero-section">
-        <p class="eyebrow">Verifiable award archive</p>
+        <p class="eyebrow">검증 가능한 어워드 아카이브</p>
         <h1>AwardBlock</h1>
-        <p class="hero-copy">Browse public award results, project context, ERC-20 claim progress, and verification metadata in one place.</p>
+        <p class="hero-copy">공개 어워드 결과, 프로젝트 맥락, ERC-20 클레임 진행률, 검증 메타데이터를 한곳에서 확인하세요.</p>
       </section>
       <section class="section-stack">
         <div class="section-header">
           <div>
-            <p class="eyebrow">Live data</p>
-            <h2>Latest Award Blocks</h2>
+            <p class="eyebrow">실시간 데이터</p>
+            <h2>최신 어워드 블록</h2>
           </div>
-          <span class="status-badge">Public</span>
+          <span class="status-badge">공개</span>
         </div>
         <div id="award-block-list" class="award-block-list" aria-live="polite">
           ${renderHomeLoading()}
@@ -91,7 +91,7 @@ export function mapAwardBlocksToSummaries(awardBlocks: AwardBlock[]): AwardBlock
       awardBlock.award.totalReward,
       awardBlock.award.rewardTokenDecimals
     )} ${awardBlock.award.rewardTokenSymbol}`,
-    claimProgress: `${awardBlock.claimStats.claimedCount}/${awardBlock.claimStats.recipientCount} claimed`,
+    claimProgress: `${awardBlock.claimStats.claimedCount}/${awardBlock.claimStats.recipientCount} 클레임 완료`,
     verified: awardBlock.award.metadataHash !== null && awardBlock.award.contractAwardId !== null,
     href: `/awards/${awardBlock.id}`
   }));
@@ -101,8 +101,8 @@ function renderAwardBlockList(awards: AwardBlockSummary[]): string {
   if (awards.length === 0) {
     return `
       <div class="empty-state">
-        <p class="eyebrow">No award blocks</p>
-        <h2>No public awards yet</h2>
+        <p class="eyebrow">어워드 블록 없음</p>
+        <h2>아직 공개 어워드가 없습니다</h2>
       </div>
     `;
   }
@@ -122,8 +122,8 @@ function renderHomeLoading(): string {
 function renderHomeError(): string {
   return `
     <div class="empty-state empty-state--error">
-      <p class="eyebrow">Load failed</p>
-      <h2>Unable to load award blocks</h2>
+      <p class="eyebrow">로드 실패</p>
+      <h2>어워드 블록을 불러오지 못했습니다</h2>
     </div>
   `;
 }

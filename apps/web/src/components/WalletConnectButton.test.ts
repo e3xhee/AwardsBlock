@@ -13,11 +13,11 @@ if (!html.includes("data-wallet-status")) {
   throw new Error("Expected wallet auth status attribute");
 }
 
-if (!html.includes("No wallet session")) {
+if (!html.includes("지갑 세션 없음")) {
   throw new Error("Expected disconnected wallet status");
 }
 
-if (!html.includes("Connect wallet")) {
+if (!html.includes("지갑 연결")) {
   throw new Error("Expected connect wallet button label");
 }
 

@@ -1,4 +1,9 @@
-import { mapAwardBlocksToSummaries, type AwardBlockListResponse } from "./HomePage";
+import {
+  mapAwardBlocksToSummaries,
+  renderHomePage,
+  type AwardBlockListResponse
+} from "./HomePage";
+import { renderAwardBlockCard } from "../components/AwardBlockCard";
 
 const response: AwardBlockListResponse = {
   awardBlocks: [
@@ -50,7 +55,7 @@ if (summaries[0]?.awardTitle !== "1st - Best Product") {
   throw new Error("Expected ranked award title");
 }
 
-if (summaries[0]?.claimProgress !== "1/2 claimed") {
+if (summaries[0]?.claimProgress !== "1/2 클레임 완료") {
   throw new Error("Expected claim progress label");
 }
 
@@ -60,4 +65,18 @@ if (summaries[0]?.organizer !== "0x0123...4567") {
 
 if (summaries[0]?.verified !== true) {
   throw new Error("Expected verified award block");
+}
+
+if (!renderHomePage().includes("검증 가능한 어워드 아카이브")) {
+  throw new Error("Expected Korean home hero copy");
+}
+
+const cardHtml = renderAwardBlockCard(summaries[0]!);
+
+if (!cardHtml.includes("검증 완료")) {
+  throw new Error("Expected Korean verification label");
+}
+
+if (!cardHtml.includes("어워드 보기")) {
+  throw new Error("Expected Korean award link label");
 }

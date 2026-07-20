@@ -102,10 +102,10 @@ export function renderProjectDetailPage(projectId: string | null = null): string
     <main class="page-shell project-detail-page">
       <section class="project-detail-hero">
         <div>
-          <p class="eyebrow">Project</p>
-          <h1>${projectId ? "Project Detail" : "Project unavailable"}</h1>
+          <p class="eyebrow">프로젝트</p>
+          <h1>${projectId ? "프로젝트 상세" : "프로젝트를 사용할 수 없습니다"}</h1>
         </div>
-        <span class="status-badge">Public</span>
+        <span class="status-badge">공개</span>
       </section>
       <section id="project-detail-content" class="project-detail-content" aria-live="polite">
         ${projectId ? renderProjectDetailLoading() : renderProjectDetailMissingId()}
@@ -150,8 +150,8 @@ export function mapProjectDetailToViewModel(
     name: project.name,
     tagline: project.tagline,
     description: project.description,
-    problemLabel: project.problem ?? "No problem statement recorded",
-    solutionLabel: project.solution ?? "No solution statement recorded",
+    problemLabel: project.problem ?? "기록된 문제 정의가 없습니다",
+    solutionLabel: project.solution ?? "기록된 해결책이 없습니다",
     eventName: event.name,
     eventHref: `/events/${encodeURIComponent(event.id)}`,
     organizerLabel: shortenAddress(event.organizerWallet),
@@ -162,7 +162,7 @@ export function mapProjectDetailToViewModel(
       id: award.id,
       title: award.rank ? `${award.rank} - ${award.title}` : award.title,
       href: `/awards/${encodeURIComponent(award.id)}`,
-      status: award.status,
+      status: formatAwardStatusLabel(award.status),
       rewardLabel: `${formatReward(
         award.totalReward,
         award.rewardTokenDecimals
@@ -171,8 +171,8 @@ export function mapProjectDetailToViewModel(
         award.claimEnd
       )}`,
       verificationLabel:
-        award.metadataHash && award.contractAwardId ? "Verified" : "Needs review",
-      reasonLabel: award.reason ?? "No reason recorded"
+        award.metadataHash && award.contractAwardId ? "검증 완료" : "검토 필요",
+      reasonLabel: award.reason ?? "기록된 선정 사유가 없습니다"
     }))
   };
 }
@@ -185,32 +185,32 @@ function renderProjectDetailContent(project: ProjectDetailViewModel): string {
         <h2>${escapeHtml(project.name)}</h2>
         <p>${escapeHtml(project.tagline)}</p>
       </div>
-      <a class="text-link" href="${escapeHtml(project.eventHref)}">View event</a>
+      <a class="text-link" href="${escapeHtml(project.eventHref)}">이벤트 보기</a>
     </section>
     <div class="detail-grid">
-      ${renderDetailMetric("Organizer", project.organizerLabel)}
-      ${renderDetailMetric("Awards", String(project.awards.length))}
-      ${renderDetailMetric("Project", project.name)}
-      ${renderDetailMetric("Event", project.eventName)}
+      ${renderDetailMetric("주최자", project.organizerLabel)}
+      ${renderDetailMetric("어워드", String(project.awards.length))}
+      ${renderDetailMetric("프로젝트", project.name)}
+      ${renderDetailMetric("이벤트", project.eventName)}
     </div>
     <section class="detail-section">
-      <h2>Project Context</h2>
+      <h2>프로젝트 정보</h2>
       <p>${escapeHtml(project.description)}</p>
       <dl class="detail-metadata">
-        <div><dt>Problem</dt><dd>${escapeHtml(project.problemLabel)}</dd></div>
-        <div><dt>Solution</dt><dd>${escapeHtml(project.solutionLabel)}</dd></div>
+        <div><dt>문제</dt><dd>${escapeHtml(project.problemLabel)}</dd></div>
+        <div><dt>해결책</dt><dd>${escapeHtml(project.solutionLabel)}</dd></div>
       </dl>
     </section>
     <section class="detail-section">
-      <h2>Project Links</h2>
+      <h2>프로젝트 링크</h2>
       <div class="project-link-list">
         ${renderExternalLink("GitHub", project.githubUrl)}
-        ${renderExternalLink("Demo", project.demoUrl)}
-        ${renderExternalLink("Presentation", project.presentationUrl)}
+        ${renderExternalLink("데모", project.demoUrl)}
+        ${renderExternalLink("발표 자료", project.presentationUrl)}
       </div>
     </section>
     <section class="detail-section">
-      <h2>Awards</h2>
+      <h2>어워드</h2>
       ${renderProjectAwards(project.awards)}
     </section>
   `;
@@ -220,8 +220,8 @@ function renderProjectAwards(awards: ProjectDetailViewModel["awards"]): string {
   if (awards.length === 0) {
     return `
       <div class="empty-state">
-        <p class="eyebrow">No awards</p>
-        <h2>No award results recorded yet</h2>
+        <p class="eyebrow">어워드 없음</p>
+        <h2>아직 기록된 어워드 결과가 없습니다</h2>
       </div>
     `;
   }
@@ -244,11 +244,11 @@ function renderProjectAward(award: ProjectDetailViewModel["awards"][number]): st
         <span class="status-badge">${escapeHtml(award.status)}</span>
       </div>
       <dl class="project-award-row__meta">
-        <div><dt>Reward</dt><dd>${escapeHtml(award.rewardLabel)}</dd></div>
-        <div><dt>Claim window</dt><dd>${escapeHtml(award.claimWindowLabel)}</dd></div>
-        <div><dt>Verification</dt><dd>${escapeHtml(award.verificationLabel)}</dd></div>
+        <div><dt>리워드</dt><dd>${escapeHtml(award.rewardLabel)}</dd></div>
+        <div><dt>클레임 기간</dt><dd>${escapeHtml(award.claimWindowLabel)}</dd></div>
+        <div><dt>검증</dt><dd>${escapeHtml(award.verificationLabel)}</dd></div>
       </dl>
-      <a class="text-link" href="${escapeHtml(award.href)}">View award</a>
+      <a class="text-link" href="${escapeHtml(award.href)}">어워드 보기</a>
     </article>
   `;
 }
@@ -264,7 +264,7 @@ function renderDetailMetric(label: string, value: string): string {
 
 function renderExternalLink(label: string, href: string | null): string {
   if (!href) {
-    return `<span class="muted-label">${escapeHtml(label)} not recorded</span>`;
+    return `<span class="muted-label">${escapeHtml(label)} 기록 없음</span>`;
   }
 
   return `<a class="text-link" href="${escapeHtml(href)}">${escapeHtml(label)}</a>`;
@@ -282,8 +282,8 @@ function renderProjectDetailLoading(): string {
 function renderProjectDetailMissingId(): string {
   return `
     <div class="empty-state">
-      <p class="eyebrow">Missing project</p>
-      <h2>Project ID is required</h2>
+      <p class="eyebrow">프로젝트 없음</p>
+      <h2>프로젝트 ID가 필요합니다</h2>
     </div>
   `;
 }
@@ -291,8 +291,8 @@ function renderProjectDetailMissingId(): string {
 function renderProjectDetailError(): string {
   return `
     <div class="empty-state empty-state--error">
-      <p class="eyebrow">Project error</p>
-      <h2>Unable to load project detail</h2>
+      <p class="eyebrow">프로젝트 오류</p>
+      <h2>프로젝트 상세를 불러오지 못했습니다</h2>
     </div>
   `;
 }
@@ -306,12 +306,22 @@ function formatReward(value: string, decimals: number): string {
 }
 
 function formatDateLabel(value: string): string {
-  return new Intl.DateTimeFormat("en", {
+  return new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
     month: "short",
     day: "2-digit",
     timeZone: "UTC"
   }).format(new Date(value));
+}
+
+function formatAwardStatusLabel(value: string): string {
+  if (value === "Draft") return "초안";
+  if (value === "ReadyToFund") return "예치 대기";
+  if (value === "Funded") return "예치 완료";
+  if (value === "Claiming") return "클레임 진행 중";
+  if (value === "Closed") return "종료";
+
+  return value;
 }
 
 function escapeHtml(value: string): string {
