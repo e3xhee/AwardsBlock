@@ -1,8 +1,18 @@
-import { apiPost } from "../api/client";
+import { apiPatch, apiPost } from "../api/client";
+import {
+  buildAwardContractId,
+  buildCreateAwardRequest,
+  buildSetRecipientsRequest,
+  sendContractWrite,
+  type ContractWriteProvider
+} from "../blockchain/awardRegistry";
+import { chainConfig } from "../blockchain/config";
+import { getBrowserEthereumProvider } from "../auth/walletAuth";
 import {
   mountWalletConnectButton,
   renderWalletConnectButton
 } from "../components/WalletConnectButton";
+import { walletState } from "../state/appState";
 
 export type OrganizerAwardDraft = {
   eventName: string;
@@ -32,6 +42,7 @@ export type OrganizerAwardDraft = {
   metadataHash: string;
   recipientName: string;
   recipientEmail: string;
+  recipientWalletAddress: string;
   recipientAllocation: string;
   inviteExpiresAt: string;
 };
@@ -72,6 +83,7 @@ type OrganizerAwardPayloads = {
   member: {
     displayName: string;
     email: string | null;
+    walletAddress: string;
     allocation: string;
     inviteStatus: string;
   };
@@ -105,6 +117,8 @@ type CreatedMemberResponse = {
   member: {
     id: string;
     displayName: string;
+    walletAddress: string | null;
+    allocation: string;
   };
 };
 
@@ -124,8 +138,40 @@ type OrganizerSubmissionResult = {
   inviteToken: string;
   awardTitle: string;
   recipientName: string;
+  contractAwardId: string;
+  createTxHash: string;
+  setRecipientsTxHash: string;
   claimPath: string;
   awardPath: string;
+};
+
+type UpdatedAwardResponse = {
+  award: {
+    id: string;
+  };
+};
+
+type CreatedTransactionResponse = {
+  transaction: {
+    id: string;
+  };
+};
+
+type OrganizerAwardSetupApi = {
+  post<TResponse, TBody = unknown>(path: string, body?: TBody): Promise<TResponse>;
+  patch<TResponse, TBody = unknown>(path: string, body?: TBody): Promise<TResponse>;
+};
+
+type OrganizerAwardSetupDependencies = {
+  api?: OrganizerAwardSetupApi;
+  provider?: ContractWriteProvider | null;
+  from?: string | null;
+  registryAddress?: string;
+};
+
+const defaultApi: OrganizerAwardSetupApi = {
+  post: apiPost,
+  patch: apiPatch
 };
 
 const defaultDraft: OrganizerAwardDraft = {
@@ -156,6 +202,7 @@ const defaultDraft: OrganizerAwardDraft = {
   metadataHash: "0xabc123",
   recipientName: "Ada Lee",
   recipientEmail: "ada@example.com",
+  recipientWalletAddress: "0x3333333333333333333333333333333333333333",
   recipientAllocation: "600000000000000000",
   inviteExpiresAt: "2026-08-15T00:00:00.000Z"
 };
@@ -165,12 +212,12 @@ export function renderOrganizerPage(): string {
     <main class="page-shell organizer-page">
       <section class="organizer-hero">
         <div>
-          <p class="eyebrow">Organizer</p>
-          <h1>Award Setup</h1>
-          <p>Create the event, project, award, recipient allocation, and claim invite from one authenticated flow.</p>
+          <p class="eyebrow">주최자</p>
+          <h1>어워드 설정</h1>
+          <p>이벤트, 프로젝트, 어워드, 수령자 배정, 클레임 초대, 온체인 등록까지 한 번에 생성합니다.</p>
         </div>
         <div class="page-actions">
-          <span class="status-badge">Draft flow</span>
+          <span class="status-badge">초안 플로우</span>
           ${renderWalletConnectButton()}
         </div>
       </section>
@@ -180,12 +227,12 @@ export function renderOrganizerPage(): string {
           ${renderProjectFields(defaultDraft)}
           ${renderAwardFields(defaultDraft)}
           ${renderRecipientFields(defaultDraft)}
-          <button class="button" type="submit">Create award setup</button>
+          <button class="button" type="submit">어워드 설정 생성</button>
         </form>
         <aside id="organizer-result" class="organizer-result" aria-live="polite">
-          <p class="eyebrow">Ready</p>
-          <h2>Waiting for organizer session</h2>
-          <p>Submit after connecting an organizer wallet session. The API will reject the flow until a session cookie exists.</p>
+          <p class="eyebrow">준비됨</p>
+          <h2>주최자 지갑 세션 대기 중</h2>
+          <p>주최자 지갑을 연결한 뒤 제출하세요. 온체인 등록에는 컨트랙트 주소 설정도 필요합니다.</p>
         </aside>
       </section>
     </main>
@@ -205,10 +252,10 @@ export function mountOrganizerPage(root: ParentNode): void {
     const submitButton = form.querySelector<HTMLButtonElement>("button[type='submit']");
     if (submitButton) {
       submitButton.disabled = true;
-      submitButton.textContent = "Creating...";
+      submitButton.textContent = "생성 중...";
     }
 
-    result.innerHTML = renderOrganizerProgress("Creating event");
+    result.innerHTML = renderOrganizerProgress("이벤트 생성");
 
     try {
       const submission = await createOrganizerAwardSetup(readOrganizerAwardDraft(form), (step) => {
@@ -221,7 +268,7 @@ export function mountOrganizerPage(root: ParentNode): void {
     } finally {
       if (submitButton) {
         submitButton.disabled = false;
-        submitButton.textContent = "Create award setup";
+        submitButton.textContent = "어워드 설정 생성";
       }
     }
   });
@@ -261,11 +308,12 @@ export function buildOrganizerAwardPayloads(
       claimEnd: requiredText(draft.claimEnd),
       metadataUri: nullableText(draft.metadataUri),
       metadataHash: nullableText(draft.metadataHash),
-      status: "Claiming"
+      status: "Draft"
     },
     member: {
       displayName: requiredText(draft.recipientName),
       email: nullableText(draft.recipientEmail),
+      walletAddress: requiredText(draft.recipientWalletAddress),
       allocation: requiredText(draft.recipientAllocation),
       inviteStatus: "Pending"
     },
@@ -277,39 +325,116 @@ export function buildOrganizerAwardPayloads(
   };
 }
 
-async function createOrganizerAwardSetup(
+export async function createOrganizerAwardSetup(
   draft: OrganizerAwardDraft,
-  onStep: (step: string) => void
+  onStep: (step: string) => void,
+  dependencies: OrganizerAwardSetupDependencies = {}
 ): Promise<OrganizerSubmissionResult> {
+  const api = dependencies.api ?? defaultApi;
+  const provider = dependencies.provider ?? getBrowserEthereumProvider();
+  const from = dependencies.from ?? walletState.address;
+  const registryAddress = dependencies.registryAddress ?? chainConfig.registryAddress;
+
+  if (!provider || !from || registryAddress === "") {
+    throw new Error("ONCHAIN_CONTEXT_REQUIRED");
+  }
+
   const payloads = buildOrganizerAwardPayloads(draft);
-  const event = await apiPost<CreatedEventResponse, OrganizerAwardPayloads["event"]>(
+  const event = await api.post<CreatedEventResponse, OrganizerAwardPayloads["event"]>(
     "/events",
     payloads.event
   );
 
-  onStep("Creating project");
-  const project = await apiPost<CreatedProjectResponse, OrganizerAwardPayloads["project"]>(
+  onStep("프로젝트 생성");
+  const project = await api.post<CreatedProjectResponse, OrganizerAwardPayloads["project"]>(
     `/events/${encodeURIComponent(event.event.id)}/projects`,
     payloads.project
   );
 
-  onStep("Creating award");
-  const award = await apiPost<CreatedAwardResponse, OrganizerAwardPayloads["award"]>(
+  onStep("어워드 초안 생성");
+  const award = await api.post<CreatedAwardResponse, OrganizerAwardPayloads["award"]>(
     `/projects/${encodeURIComponent(project.project.id)}/awards`,
     payloads.award
   );
 
-  onStep("Adding recipient");
-  const member = await apiPost<CreatedMemberResponse, OrganizerAwardPayloads["member"]>(
+  onStep("수령자 추가");
+  const member = await api.post<CreatedMemberResponse, OrganizerAwardPayloads["member"]>(
     `/awards/${encodeURIComponent(award.award.id)}/members`,
     payloads.member
   );
 
-  onStep("Creating claim invite");
-  const invite = await apiPost<CreatedInviteResponse, OrganizerAwardPayloads["invite"]>(
+  onStep("클레임 초대 생성");
+  const invite = await api.post<CreatedInviteResponse, OrganizerAwardPayloads["invite"]>(
     `/award-members/${encodeURIComponent(member.member.id)}/claim-invites`,
     payloads.invite
   );
+
+  onStep("온체인 어워드 생성");
+  const contractAwardId = buildAwardContractId(award.award.id);
+  const createTxHash = await sendContractWrite(
+    provider,
+    buildCreateAwardRequest({
+      from,
+      registryAddress,
+      awardId: award.award.id,
+      eventId: event.event.id,
+      projectId: project.project.id,
+      metadataUri: payloads.award.metadataUri,
+      metadataHash: payloads.award.metadataHash,
+      rewardTokenAddress: payloads.award.rewardTokenAddress,
+      claimStart: payloads.award.claimStart,
+      claimEnd: payloads.award.claimEnd
+    })
+  );
+
+  await api.patch<
+    UpdatedAwardResponse,
+    {
+      contractAwardId: string;
+      createTxHash: string;
+    }
+  >(`/awards/${encodeURIComponent(award.award.id)}`, {
+    contractAwardId,
+    createTxHash
+  });
+
+  await api.post<
+    CreatedTransactionResponse,
+    {
+      transactionType: string;
+      walletAddress: string;
+      txHash: string;
+    }
+  >(`/awards/${encodeURIComponent(award.award.id)}/transactions`, {
+    transactionType: "AwardRegistered",
+    walletAddress: from,
+    txHash: createTxHash
+  });
+
+  onStep("수령자 배정 등록");
+  const setRecipientsTxHash = await sendContractWrite(
+    provider,
+    buildSetRecipientsRequest({
+      from,
+      registryAddress,
+      awardId: award.award.id,
+      recipients: [
+        {
+          walletAddress: member.member.walletAddress ?? payloads.member.walletAddress,
+          allocation: member.member.allocation
+        }
+      ]
+    })
+  );
+
+  await api.patch<
+    UpdatedAwardResponse,
+    {
+      status: string;
+    }
+  >(`/awards/${encodeURIComponent(award.award.id)}`, {
+    status: "ReadyToFund"
+  });
 
   return {
     eventId: event.event.id,
@@ -320,6 +445,9 @@ async function createOrganizerAwardSetup(
     inviteToken: invite.invite.token,
     awardTitle: award.award.title,
     recipientName: member.member.displayName,
+    contractAwardId,
+    createTxHash,
+    setRecipientsTxHash,
     claimPath: `/claim/${encodeURIComponent(invite.invite.token)}`,
     awardPath: `/awards/${encodeURIComponent(award.award.id)}`
   };
@@ -355,6 +483,7 @@ function readOrganizerAwardDraft(form: HTMLFormElement): OrganizerAwardDraft {
     metadataHash: readFormString(formData, "metadataHash"),
     recipientName: readFormString(formData, "recipientName"),
     recipientEmail: readFormString(formData, "recipientEmail"),
+    recipientWalletAddress: readFormString(formData, "recipientWalletAddress"),
     recipientAllocation: readFormString(formData, "recipientAllocation"),
     inviteExpiresAt: readFormString(formData, "inviteExpiresAt")
   };
@@ -363,16 +492,16 @@ function readOrganizerAwardDraft(form: HTMLFormElement): OrganizerAwardDraft {
 function renderEventFields(draft: OrganizerAwardDraft): string {
   return `
     <fieldset>
-      <legend>Event</legend>
-      ${renderInput("Event name", "eventName", draft.eventName, true)}
-      ${renderTextarea("Description", "eventDescription", draft.eventDescription, true)}
+      <legend>이벤트</legend>
+      ${renderInput("이벤트 이름", "eventName", draft.eventName, true)}
+      ${renderTextarea("설명", "eventDescription", draft.eventDescription, true)}
       <div class="organizer-field-grid">
-        ${renderInput("Start date", "eventStartDate", draft.eventStartDate, true)}
-        ${renderInput("End date", "eventEndDate", draft.eventEndDate, true)}
+        ${renderInput("시작일", "eventStartDate", draft.eventStartDate, true)}
+        ${renderInput("종료일", "eventEndDate", draft.eventEndDate, true)}
       </div>
       <div class="organizer-field-grid">
-        ${renderInput("Location", "eventLocation", draft.eventLocation)}
-        ${renderInput("Official URL", "eventOfficialUrl", draft.eventOfficialUrl)}
+        ${renderInput("장소", "eventLocation", draft.eventLocation)}
+        ${renderInput("공식 URL", "eventOfficialUrl", draft.eventOfficialUrl)}
       </div>
     </fieldset>
   `;
@@ -381,17 +510,17 @@ function renderEventFields(draft: OrganizerAwardDraft): string {
 function renderProjectFields(draft: OrganizerAwardDraft): string {
   return `
     <fieldset>
-      <legend>Project</legend>
-      ${renderInput("Project name", "projectName", draft.projectName, true)}
-      ${renderInput("Tagline", "projectTagline", draft.projectTagline, true)}
-      ${renderTextarea("Description", "projectDescription", draft.projectDescription, true)}
+      <legend>프로젝트</legend>
+      ${renderInput("프로젝트 이름", "projectName", draft.projectName, true)}
+      ${renderInput("한 줄 소개", "projectTagline", draft.projectTagline, true)}
+      ${renderTextarea("설명", "projectDescription", draft.projectDescription, true)}
       <div class="organizer-field-grid">
-        ${renderInput("Problem", "projectProblem", draft.projectProblem)}
-        ${renderInput("Solution", "projectSolution", draft.projectSolution)}
+        ${renderInput("문제", "projectProblem", draft.projectProblem)}
+        ${renderInput("해결책", "projectSolution", draft.projectSolution)}
       </div>
       <div class="organizer-field-grid">
         ${renderInput("GitHub URL", "projectGithubUrl", draft.projectGithubUrl)}
-        ${renderInput("Demo URL", "projectDemoUrl", draft.projectDemoUrl)}
+        ${renderInput("데모 URL", "projectDemoUrl", draft.projectDemoUrl)}
       </div>
     </fieldset>
   `;
@@ -400,22 +529,22 @@ function renderProjectFields(draft: OrganizerAwardDraft): string {
 function renderAwardFields(draft: OrganizerAwardDraft): string {
   return `
     <fieldset>
-      <legend>Award</legend>
+      <legend>어워드</legend>
       <div class="organizer-field-grid">
-        ${renderInput("Award title", "awardTitle", draft.awardTitle, true)}
-        ${renderInput("Rank", "awardRank", draft.awardRank)}
+        ${renderInput("어워드 제목", "awardTitle", draft.awardTitle, true)}
+        ${renderInput("순위", "awardRank", draft.awardRank)}
       </div>
-      ${renderTextarea("Reason", "awardReason", draft.awardReason)}
-      ${renderTextarea("Judging summary", "judgingSummary", draft.judgingSummary)}
+      ${renderTextarea("선정 이유", "awardReason", draft.awardReason)}
+      ${renderTextarea("심사 요약", "judgingSummary", draft.judgingSummary)}
       <div class="organizer-field-grid">
-        ${renderInput("Reward token address", "rewardTokenAddress", draft.rewardTokenAddress, true)}
-        ${renderInput("Symbol", "rewardTokenSymbol", draft.rewardTokenSymbol, true)}
-        ${renderInput("Decimals", "rewardTokenDecimals", draft.rewardTokenDecimals, true)}
+        ${renderInput("리워드 토큰 주소", "rewardTokenAddress", draft.rewardTokenAddress, true)}
+        ${renderInput("심볼", "rewardTokenSymbol", draft.rewardTokenSymbol, true)}
+        ${renderInput("소수점", "rewardTokenDecimals", draft.rewardTokenDecimals, true)}
       </div>
-      ${renderInput("Total reward in base units", "totalReward", draft.totalReward, true)}
+      ${renderInput("총 리워드(base unit)", "totalReward", draft.totalReward, true)}
       <div class="organizer-field-grid">
-        ${renderInput("Claim start", "claimStart", draft.claimStart, true)}
-        ${renderInput("Claim end", "claimEnd", draft.claimEnd, true)}
+        ${renderInput("클레임 시작", "claimStart", draft.claimStart, true)}
+        ${renderInput("클레임 종료", "claimEnd", draft.claimEnd, true)}
       </div>
       <div class="organizer-field-grid">
         ${renderInput("Metadata URI", "metadataUri", draft.metadataUri)}
@@ -428,14 +557,15 @@ function renderAwardFields(draft: OrganizerAwardDraft): string {
 function renderRecipientFields(draft: OrganizerAwardDraft): string {
   return `
     <fieldset>
-      <legend>Recipient</legend>
+      <legend>수령자</legend>
       <div class="organizer-field-grid">
-        ${renderInput("Recipient name", "recipientName", draft.recipientName, true)}
-        ${renderInput("Recipient email", "recipientEmail", draft.recipientEmail)}
+        ${renderInput("수령자 이름", "recipientName", draft.recipientName, true)}
+        ${renderInput("수령자 이메일", "recipientEmail", draft.recipientEmail)}
       </div>
+      ${renderInput("수령자 지갑 주소", "recipientWalletAddress", draft.recipientWalletAddress, true)}
       <div class="organizer-field-grid">
-        ${renderInput("Allocation in base units", "recipientAllocation", draft.recipientAllocation, true)}
-        ${renderInput("Invite expires at", "inviteExpiresAt", draft.inviteExpiresAt)}
+        ${renderInput("배정 수량(base unit)", "recipientAllocation", draft.recipientAllocation, true)}
+        ${renderInput("초대 만료일", "inviteExpiresAt", draft.inviteExpiresAt)}
       </div>
     </fieldset>
   `;
@@ -466,7 +596,7 @@ function renderTextarea(
 
 function renderOrganizerProgress(step: string): string {
   return `
-    <p class="eyebrow">Working</p>
+    <p class="eyebrow">진행 중</p>
     <h2>${escapeHtml(step)}</h2>
     <span class="loading-bar"></span>
   `;
@@ -474,27 +604,29 @@ function renderOrganizerProgress(step: string): string {
 
 function renderOrganizerSuccess(result: OrganizerSubmissionResult): string {
   return `
-    <p class="eyebrow">Created</p>
+    <p class="eyebrow">생성 완료</p>
     <h2>${escapeHtml(result.awardTitle)}</h2>
     <dl class="organizer-result-list">
-      <div><dt>Recipient</dt><dd>${escapeHtml(result.recipientName)}</dd></div>
+      <div><dt>수령자</dt><dd>${escapeHtml(result.recipientName)}</dd></div>
       <div><dt>Event ID</dt><dd>${escapeHtml(result.eventId)}</dd></div>
       <div><dt>Project ID</dt><dd>${escapeHtml(result.projectId)}</dd></div>
       <div><dt>Award ID</dt><dd>${escapeHtml(result.awardId)}</dd></div>
+      <div><dt>Contract Award ID</dt><dd>${escapeHtml(result.contractAwardId)}</dd></div>
+      <div><dt>Create Tx</dt><dd>${escapeHtml(result.createTxHash)}</dd></div>
       <div><dt>Invite ID</dt><dd>${escapeHtml(result.inviteId)}</dd></div>
     </dl>
     <div class="organizer-result-actions">
-      <a class="text-link" href="${escapeHtml(result.awardPath)}">View award</a>
-      <a class="text-link" href="${escapeHtml(result.claimPath)}">Open claim invite</a>
+      <a class="text-link" href="${escapeHtml(result.awardPath)}">어워드 보기</a>
+      <a class="text-link" href="${escapeHtml(result.claimPath)}">클레임 초대 열기</a>
     </div>
   `;
 }
 
 function renderOrganizerError(): string {
   return `
-    <p class="eyebrow">Create failed</p>
-    <h2>Organizer wallet session required</h2>
-    <p>Sign in with an organizer wallet session, then submit again.</p>
+    <p class="eyebrow">생성 실패</p>
+    <h2>주최자 지갑 세션과 컨트랙트 설정이 필요합니다</h2>
+    <p>지갑을 연결하고 registry 컨트랙트 주소를 설정한 뒤 다시 제출하세요.</p>
   `;
 }
 

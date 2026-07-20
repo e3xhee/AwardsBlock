@@ -29,3 +29,21 @@ export async function apiPost<TResponse, TBody = unknown>(
 
   return response.json() as Promise<TResponse>;
 }
+
+export async function apiPatch<TResponse, TBody = unknown>(
+  path: string,
+  body?: TBody
+): Promise<TResponse> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: body === undefined ? undefined : { "content-type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.status}`);
+  }
+
+  return response.json() as Promise<TResponse>;
+}

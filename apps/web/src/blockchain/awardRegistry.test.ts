@@ -3,9 +3,11 @@ import {
   awardRegistryAbi,
   buildApproveRewardTokenRequest,
   buildAwardContractId,
+  buildCreateAwardRequest,
   buildClaimAwardRequest,
   buildFinalizeAwardRequest,
   buildFundAwardRequest,
+  buildSetRecipientsRequest,
   erc20ApproveAbi,
   sendContractWrite,
   type ContractWriteProvider
@@ -14,6 +16,7 @@ import {
 const organizer = "0x0123456789abcdef0123456789abcdef01234567";
 const registryAddress = "0x1111111111111111111111111111111111111111";
 const rewardTokenAddress = "0x2222222222222222222222222222222222222222";
+const recipientAddress = "0x3333333333333333333333333333333333333333";
 const contractAwardId = buildAwardContractId("award-1");
 
 if (!/^0x[a-f0-9]{64}$/.test(contractAwardId)) {
@@ -49,6 +52,66 @@ if (decodedApprove.functionName !== "approve") {
 
 if (decodedApprove.args[0] !== registryAddress || decodedApprove.args[1] !== 1000000000000000000n) {
   throw new Error("Expected approve spender and amount args");
+}
+
+const createAwardRequest = buildCreateAwardRequest({
+  from: organizer,
+  registryAddress,
+  awardId: "award-1",
+  eventId: "event-1",
+  projectId: "project-1",
+  metadataUri: "ipfs://awardblock/best-product",
+  metadataHash: "0xabc123",
+  rewardTokenAddress,
+  claimStart: "2026-08-02T00:00:00.000Z",
+  claimEnd: "2026-09-01T00:00:00.000Z"
+});
+
+if (createAwardRequest.to !== registryAddress) {
+  throw new Error("Expected createAward request to target registry");
+}
+
+const decodedCreateAward = decodeFunctionData({
+  abi: awardRegistryAbi,
+  data: createAwardRequest.data
+});
+
+if (decodedCreateAward.functionName !== "createAward") {
+  throw new Error("Expected createAward function call");
+}
+
+if (
+  decodedCreateAward.args[0] !== contractAwardId ||
+  decodedCreateAward.args[3] !== "ipfs://awardblock/best-product" ||
+  decodedCreateAward.args[5] !== rewardTokenAddress ||
+  decodedCreateAward.args[6] !== 1785628800n ||
+  decodedCreateAward.args[7] !== 1788220800n
+) {
+  throw new Error("Expected createAward encoded args");
+}
+
+const setRecipientsRequest = buildSetRecipientsRequest({
+  from: organizer,
+  registryAddress,
+  awardId: "award-1",
+  recipients: [{ walletAddress: recipientAddress, allocation: "600000000000000000" }]
+});
+
+const decodedSetRecipients = decodeFunctionData({
+  abi: awardRegistryAbi,
+  data: setRecipientsRequest.data
+});
+
+if (decodedSetRecipients.functionName !== "setRecipients") {
+  throw new Error("Expected setRecipients function call");
+}
+
+if (
+  decodedSetRecipients.args[0] !== contractAwardId ||
+  decodedSetRecipients.args[1][0] !== recipientAddress ||
+  decodedSetRecipients.args[2][0] !== 600000000000000000n
+) {
+  throw new Error("Expected setRecipients encoded recipient allocation");
 }
 
 const fundRequest = buildFundAwardRequest({
