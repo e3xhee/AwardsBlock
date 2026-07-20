@@ -9,6 +9,7 @@
     "build": "corepack pnpm --filter @awardblock/shared --filter @awardblock/api --filter @awardblock/web build",
     "test": "corepack pnpm --filter @awardblock/shared --filter @awardblock/api --filter @awardblock/web test",
     "lint": "corepack pnpm --filter @awardblock/shared --filter @awardblock/api --filter @awardblock/web lint",
+    "seed:demo": "corepack pnpm --filter @awardblock/api seed:demo",
     "format": "prettier --write .",
     "contracts:build": "corepack pnpm --filter @awardblock/contracts build",
     "contracts:test": "corepack pnpm --filter @awardblock/contracts test"
