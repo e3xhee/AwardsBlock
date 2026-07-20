@@ -1,4 +1,4 @@
-import { mapProfileToViewModel, type WalletProfileResponse } from "./ProfilePage";
+import { mapProfileToViewModel, renderProfilePage, type WalletProfileResponse } from "./ProfilePage";
 
 const profile: WalletProfileResponse["profile"] = {
   walletAddress: "0x1111111111111111111111111111111111111111",
@@ -59,4 +59,24 @@ if (viewModel.awards[0]?.rewardLabel !== "0.6 MNT") {
 
 if (viewModel.awards[0]?.claimTransactionLabel !== "0xaaaa...aaaa") {
   throw new Error("Expected shortened claim transaction label");
+}
+
+if (viewModel.stats[0]?.label !== "어워드") {
+  throw new Error("Expected Korean award stat label");
+}
+
+if (viewModel.awards[0]?.status !== "클레임 완료") {
+  throw new Error("Expected Korean claimed status label");
+}
+
+if (viewModel.awards[0]?.claimedAtLabel !== "2026년 8월 04일") {
+  throw new Error("Expected Korean claimed date label");
+}
+
+if (viewModel.awards[0]?.claimTransactions[0]?.blockLabel !== "#123456") {
+  throw new Error("Expected mined block label");
+}
+
+if (!renderProfilePage(profile.walletAddress).includes("지갑 프로필")) {
+  throw new Error("Expected Korean profile page title");
 }

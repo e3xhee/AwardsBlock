@@ -79,13 +79,13 @@ export function mountAwardOnchainActions(root: ParentNode): void {
       const from = walletState.address;
 
       if (!action || !provider || !from || chainConfig.registryAddress === "") {
-        status.textContent = "지갑 세션과 registry 컨트랙트 주소가 필요합니다";
+        status.textContent = "지갑 세션과 Registry 컨트랙트 주소가 필요합니다";
         panel.classList.add("onchain-actions--error");
         return;
       }
 
       panel.classList.remove("onchain-actions--error");
-      status.textContent = "지갑 확인 대기 중";
+      status.textContent = "지갑 승인 대기 중";
       button.disabled = true;
 
       try {
@@ -200,14 +200,14 @@ function getOnchainStatusLabel(award: OnchainAward, actions: AwardOnchainAction[
   }
 
   if (actions.length === 0) {
-    return "현재 상태에서 필요한 주최자 온체인 작업이 없습니다.";
+    return "현재 상태에서 필요한 온체인 작업이 없습니다.";
   }
 
   if (award.status === "ReadyToFund") {
-    return "토큰 승인 후 어워드 펀딩을 진행하세요.";
+    return "토큰 승인 후 리워드 예치를 진행하세요.";
   }
 
-  return "펀딩이 완료됐습니다. 어워드를 확정해 클레임 단계로 넘기세요.";
+  return "예치가 완료되었습니다. 어워드를 확정해 클레임 단계로 넘기세요.";
 }
 
 function renderActionButtons(actions: AwardOnchainAction[]): string {
@@ -227,7 +227,7 @@ function renderActionButton(action: AwardOnchainAction): string {
     action === "approve"
       ? "토큰 승인"
       : action === "fund"
-        ? "어워드 펀딩"
+        ? "리워드 예치"
         : action === "finalize"
           ? "어워드 확정"
           : "리워드 클레임";

@@ -122,10 +122,10 @@ export function renderAwardDetailPage(awardId: string | null = null): string {
     <main class="page-shell award-detail-page">
       <section class="award-detail-hero">
         <div>
-          <p class="eyebrow">Award Block</p>
-          <h1>${awardId ? "Award Block" : "Award unavailable"}</h1>
+          <p class="eyebrow">어워드 블록</p>
+          <h1>${awardId ? "어워드 블록" : "어워드를 사용할 수 없습니다"}</h1>
         </div>
-        <span class="status-badge">Public</span>
+        <span class="status-badge">공개</span>
       </section>
       <section id="award-detail-content" class="award-detail-content" aria-live="polite">
         ${awardId ? renderAwardDetailLoading() : renderAwardDetailMissingId()}
@@ -164,22 +164,22 @@ export function mapAwardBlockDetailToViewModel(
     awardTitle: awardBlock.award.rank
       ? `${awardBlock.award.rank} - ${awardBlock.award.title}`
       : awardBlock.award.title,
-    awardReason: awardBlock.award.reason ?? "No reason recorded",
-    judgingSummary: awardBlock.award.judgingSummary ?? "No judging summary recorded",
-    status: awardBlock.award.status,
+    awardReason: awardBlock.award.reason ?? "기록된 선정 사유가 없습니다",
+    judgingSummary: awardBlock.award.judgingSummary ?? "기록된 심사 요약이 없습니다",
+    status: formatAwardStatusLabel(awardBlock.award.status),
     organizerLabel: shortenAddress(awardBlock.organizerWallet),
     rewardLabel: `${formatReward(
       awardBlock.award.totalReward,
       awardBlock.award.rewardTokenDecimals
     )} ${awardBlock.award.rewardTokenSymbol}`,
-    claimProgress: `${awardBlock.claimStats.claimedCount}/${awardBlock.claimStats.recipientCount} claimed`,
+    claimProgress: `${awardBlock.claimStats.claimedCount}/${awardBlock.claimStats.recipientCount} 클레임 완료`,
     claimWindowLabel: `${formatDateLabel(awardBlock.award.claimStart)} - ${formatDateLabel(
       awardBlock.award.claimEnd
     )}`,
     verificationLabel:
-      awardBlock.award.metadataHash && awardBlock.award.contractAwardId ? "Verified" : "Needs review",
-    metadataHashLabel: awardBlock.award.metadataHash ?? "Not recorded",
-    contractAwardIdLabel: awardBlock.award.contractAwardId ?? "Not recorded",
+      awardBlock.award.metadataHash && awardBlock.award.contractAwardId ? "검증 완료" : "검토 필요",
+    metadataHashLabel: awardBlock.award.metadataHash ?? "기록 없음",
+    contractAwardIdLabel: awardBlock.award.contractAwardId ?? "기록 없음",
     onchainAward: {
       id: awardBlock.award.id,
       contractAwardId: awardBlock.award.contractAwardId,
@@ -190,22 +190,22 @@ export function mapAwardBlockDetailToViewModel(
     members: awardBlock.members.map((member) => ({
       id: member.id,
       displayName: member.displayName,
-      walletLabel: member.walletAddress ? shortenAddress(member.walletAddress) : "Not connected",
+      walletLabel: member.walletAddress ? shortenAddress(member.walletAddress) : "미연결",
       allocationLabel: `${formatReward(
         member.allocation,
         awardBlock.award.rewardTokenDecimals
       )} ${awardBlock.award.rewardTokenSymbol}`,
-      status: member.inviteStatus,
+      status: formatInviteStatusLabel(member.inviteStatus),
       claimedAtLabel: formatNullableDateLabel(member.claimedAt),
-      claimTxLabel: member.claimTxHash ? shortenAddress(member.claimTxHash) : "Not recorded"
+      claimTxLabel: member.claimTxHash ? shortenAddress(member.claimTxHash) : "기록 없음"
     })),
     transactions: awardBlock.transactions.map((transaction) => ({
       id: transaction.id,
-      typeLabel: transaction.transactionType,
+      typeLabel: formatTransactionTypeLabel(transaction.transactionType),
       walletLabel: shortenAddress(transaction.walletAddress),
       txHashLabel: shortenAddress(transaction.txHash),
       blockLabel:
-        transaction.blockNumber === null ? "Pending block" : `#${transaction.blockNumber}`,
+        transaction.blockNumber === null ? "블록 대기 중" : `#${transaction.blockNumber}`,
       createdAtLabel: formatDateLabel(transaction.createdAt)
     }))
   };
@@ -222,32 +222,32 @@ function renderAwardDetailContent(awardBlock: AwardBlockDetailViewModel): string
       <span class="status-badge">${escapeHtml(awardBlock.status)}</span>
     </section>
     <div class="detail-grid">
-      ${renderDetailMetric("Organizer", awardBlock.organizerLabel)}
-      ${renderDetailMetric("Reward", awardBlock.rewardLabel)}
-      ${renderDetailMetric("Claim", awardBlock.claimProgress)}
-      ${renderDetailMetric("Verification", awardBlock.verificationLabel)}
+      ${renderDetailMetric("주최자", awardBlock.organizerLabel)}
+      ${renderDetailMetric("리워드", awardBlock.rewardLabel)}
+      ${renderDetailMetric("클레임", awardBlock.claimProgress)}
+      ${renderDetailMetric("검증", awardBlock.verificationLabel)}
     </div>
     <section class="detail-section">
-      <h2>Project Context</h2>
+      <h2>프로젝트 정보</h2>
       <p>${escapeHtml(awardBlock.projectDescription)}</p>
       <p>${escapeHtml(awardBlock.awardReason)}</p>
       <p>${escapeHtml(awardBlock.judgingSummary)}</p>
     </section>
     <section class="detail-section">
-      <h2>Verification</h2>
+      <h2>검증 정보</h2>
       <dl class="detail-metadata">
-        <div><dt>Claim window</dt><dd>${escapeHtml(awardBlock.claimWindowLabel)}</dd></div>
-        <div><dt>Metadata hash</dt><dd>${escapeHtml(awardBlock.metadataHashLabel)}</dd></div>
-        <div><dt>Contract award ID</dt><dd>${escapeHtml(awardBlock.contractAwardIdLabel)}</dd></div>
+        <div><dt>클레임 기간</dt><dd>${escapeHtml(awardBlock.claimWindowLabel)}</dd></div>
+        <div><dt>메타데이터 해시</dt><dd>${escapeHtml(awardBlock.metadataHashLabel)}</dd></div>
+        <div><dt>컨트랙트 어워드 ID</dt><dd>${escapeHtml(awardBlock.contractAwardIdLabel)}</dd></div>
       </dl>
     </section>
     ${renderAwardOnchainActions(awardBlock.onchainAward)}
     <section class="detail-section">
-      <h2>Recipients</h2>
+      <h2>수신자</h2>
       ${renderMembers(awardBlock.members)}
     </section>
     <section class="detail-section">
-      <h2>Transactions</h2>
+      <h2>트랜잭션</h2>
       ${renderTransactions(awardBlock.transactions)}
     </section>
   `;
@@ -266,8 +266,8 @@ function renderMembers(members: AwardBlockDetailViewModel["members"]): string {
   if (members.length === 0) {
     return `
       <div class="empty-state">
-        <p class="eyebrow">No recipients</p>
-        <h2>No award members yet</h2>
+        <p class="eyebrow">수신자 없음</p>
+        <h2>아직 어워드 멤버가 없습니다</h2>
       </div>
     `;
   }
@@ -287,10 +287,10 @@ function renderMember(member: AwardBlockDetailViewModel["members"][number]): str
         <span>${escapeHtml(member.walletLabel)}</span>
       </div>
       <dl>
-        <div><dt>Allocation</dt><dd>${escapeHtml(member.allocationLabel)}</dd></div>
-        <div><dt>Status</dt><dd>${escapeHtml(member.status)}</dd></div>
-        <div><dt>Claimed</dt><dd>${escapeHtml(member.claimedAtLabel)}</dd></div>
-        <div><dt>Claim tx</dt><dd>${escapeHtml(member.claimTxLabel)}</dd></div>
+        <div><dt>배정 수량</dt><dd>${escapeHtml(member.allocationLabel)}</dd></div>
+        <div><dt>상태</dt><dd>${escapeHtml(member.status)}</dd></div>
+        <div><dt>클레임일</dt><dd>${escapeHtml(member.claimedAtLabel)}</dd></div>
+        <div><dt>클레임 tx</dt><dd>${escapeHtml(member.claimTxLabel)}</dd></div>
       </dl>
     </article>
   `;
@@ -302,14 +302,14 @@ function renderTransactions(
   if (transactions.length === 0) {
     return `
       <div class="empty-state">
-        <p class="eyebrow">No transactions</p>
-        <h2>No on-chain activity recorded</h2>
+        <p class="eyebrow">트랜잭션 없음</p>
+        <h2>기록된 온체인 활동이 없습니다</h2>
       </div>
     `;
   }
 
   return `
-    <ul class="claim-transaction-list" aria-label="Award transactions">
+    <ul class="claim-transaction-list" aria-label="어워드 트랜잭션">
       ${transactions
         .map(
           (transaction) => `
@@ -339,8 +339,8 @@ function renderAwardDetailLoading(): string {
 function renderAwardDetailMissingId(): string {
   return `
     <div class="empty-state">
-      <p class="eyebrow">Missing award</p>
-      <h2>Award ID is required</h2>
+      <p class="eyebrow">어워드 없음</p>
+      <h2>어워드 ID가 필요합니다</h2>
     </div>
   `;
 }
@@ -348,8 +348,8 @@ function renderAwardDetailMissingId(): string {
 function renderAwardDetailError(): string {
   return `
     <div class="empty-state empty-state--error">
-      <p class="eyebrow">Award error</p>
-      <h2>Unable to load award block</h2>
+      <p class="eyebrow">어워드 오류</p>
+      <h2>어워드 블록을 불러오지 못했습니다</h2>
     </div>
   `;
 }
@@ -363,7 +363,7 @@ function formatReward(value: string, decimals: number): string {
 }
 
 function formatDateLabel(value: string): string {
-  return new Intl.DateTimeFormat("en", {
+  return new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
     month: "short",
     day: "2-digit"
@@ -371,7 +371,37 @@ function formatDateLabel(value: string): string {
 }
 
 function formatNullableDateLabel(value: string | null): string {
-  return value ? formatDateLabel(value) : "Not claimed";
+  return value ? formatDateLabel(value) : "미클레임";
+}
+
+function formatAwardStatusLabel(value: string): string {
+  if (value === "Draft") return "초안";
+  if (value === "ReadyToFund") return "예치 대기";
+  if (value === "Funded") return "예치 완료";
+  if (value === "Claiming") return "클레임 진행 중";
+  if (value === "Closed") return "종료";
+
+  return value;
+}
+
+function formatInviteStatusLabel(value: string): string {
+  if (value === "Invited") return "초대됨";
+  if (value === "Pending") return "대기 중";
+  if (value === "WalletConnected") return "지갑 연결됨";
+  if (value === "Claimed") return "클레임 완료";
+  if (value === "Revoked") return "취소됨";
+
+  return value;
+}
+
+function formatTransactionTypeLabel(value: string): string {
+  if (value === "AwardCreated") return "어워드 생성";
+  if (value === "RecipientsSet") return "수신자 설정";
+  if (value === "AwardFunded") return "리워드 예치";
+  if (value === "AwardFinalized") return "어워드 확정";
+  if (value === "AwardClaimed") return "리워드 클레임";
+
+  return value;
 }
 
 function escapeHtml(value: string): string {

@@ -78,16 +78,16 @@ type WalletProfileViewModel = {
 };
 
 export function renderProfilePage(walletAddress: string | null = null): string {
-  const addressLabel = walletAddress ? escapeHtml(shortenAddress(walletAddress)) : "No wallet";
+  const addressLabel = walletAddress ? escapeHtml(shortenAddress(walletAddress)) : "지갑 없음";
 
   return `
     <main class="page-shell profile-page">
       <section class="profile-hero">
         <div>
-          <p class="eyebrow">Wallet Profile</p>
+          <p class="eyebrow">지갑 프로필</p>
           <h1>${addressLabel}</h1>
         </div>
-        <span class="status-badge">Public</span>
+        <span class="status-badge">공개</span>
       </section>
       <section id="profile-content" class="profile-content" aria-live="polite">
         ${walletAddress ? renderProfileLoading() : renderProfileMissingWallet()}
@@ -118,9 +118,9 @@ export function mapProfileToViewModel(profile: WalletProfile): WalletProfileView
     walletAddress: profile.walletAddress,
     walletLabel: shortenAddress(profile.walletAddress),
     stats: [
-      { label: "Awards", value: profile.stats.awardCount.toString() },
-      { label: "Claimed", value: profile.stats.claimedAwardCount.toString() },
-      { label: "Projects", value: profile.stats.projectCount.toString() }
+      { label: "어워드", value: profile.stats.awardCount.toString() },
+      { label: "클레임 완료", value: profile.stats.claimedAwardCount.toString() },
+      { label: "프로젝트", value: profile.stats.projectCount.toString() }
     ],
     awards: profile.awards.map((award) => {
       const claimTransaction = award.claimTransactions[0];
@@ -128,14 +128,14 @@ export function mapProfileToViewModel(profile: WalletProfile): WalletProfileView
       return {
         memberId: award.member.id,
         title: award.award.title,
-        rankLabel: award.award.rank ?? "Unranked",
+        rankLabel: award.award.rank ?? "순위 없음",
         projectName: award.project.name,
         eventName: award.event.name,
         recipientName: award.member.displayName,
         rewardLabel: `${formatReward(award.member.allocation, award.award.rewardTokenDecimals)} ${
           award.award.rewardTokenSymbol
         }`,
-        status: award.member.inviteStatus,
+        status: formatInviteStatusLabel(award.member.inviteStatus),
         claimedAtLabel: formatDateLabel(award.member.claimedAt),
         claimTransactionLabel: claimTransaction
           ? shortenAddress(claimTransaction.txHash)
@@ -144,7 +144,7 @@ export function mapProfileToViewModel(profile: WalletProfile): WalletProfileView
           id: transaction.id,
           txHashLabel: shortenAddress(transaction.txHash),
           blockLabel:
-            transaction.blockNumber === null ? "Pending block" : `#${transaction.blockNumber}`,
+            transaction.blockNumber === null ? "블록 대기 중" : `#${transaction.blockNumber}`,
           createdAtLabel: formatDateLabel(transaction.createdAt)
         }))
       };
@@ -156,7 +156,7 @@ function renderProfileContent(profile: WalletProfileViewModel): string {
   if (profile.awards.length === 0) {
     return `
       <div class="empty-state">
-        <p class="eyebrow">No awards</p>
+        <p class="eyebrow">어워드 없음</p>
         <h2>${escapeHtml(profile.walletLabel)}</h2>
       </div>
     `;
@@ -166,7 +166,7 @@ function renderProfileContent(profile: WalletProfileViewModel): string {
     <div class="profile-summary">
       ${profile.stats.map(renderStat).join("")}
     </div>
-    <section class="profile-awards" aria-label="Award history">
+    <section class="profile-awards" aria-label="어워드 이력">
       ${profile.awards.map(renderProfileAward).join("")}
     </section>
   `;
@@ -188,15 +188,15 @@ function renderProfileAward(award: WalletProfileViewModel["awards"][number]): st
         <div>
           <p class="eyebrow">${escapeHtml(award.eventName)}</p>
           <h2>${escapeHtml(award.title)}</h2>
-          <p>${escapeHtml(award.projectName)} · ${escapeHtml(award.rankLabel)}</p>
+          <p>${escapeHtml(award.projectName)} - ${escapeHtml(award.rankLabel)}</p>
         </div>
         <span class="status-badge">${escapeHtml(award.status)}</span>
       </header>
       <dl class="profile-award__meta">
-        <div><dt>Recipient</dt><dd>${escapeHtml(award.recipientName)}</dd></div>
-        <div><dt>Reward</dt><dd>${escapeHtml(award.rewardLabel)}</dd></div>
-        <div><dt>Claimed</dt><dd>${escapeHtml(award.claimedAtLabel)}</dd></div>
-        <div><dt>Claim tx</dt><dd>${escapeHtml(award.claimTransactionLabel)}</dd></div>
+        <div><dt>수신자</dt><dd>${escapeHtml(award.recipientName)}</dd></div>
+        <div><dt>리워드</dt><dd>${escapeHtml(award.rewardLabel)}</dd></div>
+        <div><dt>클레임일</dt><dd>${escapeHtml(award.claimedAtLabel)}</dd></div>
+        <div><dt>클레임 tx</dt><dd>${escapeHtml(award.claimTransactionLabel)}</dd></div>
       </dl>
       ${renderClaimTransactions(award.claimTransactions)}
     </article>
@@ -211,7 +211,7 @@ function renderClaimTransactions(
   }
 
   return `
-    <ul class="claim-transaction-list" aria-label="Claim transactions">
+    <ul class="claim-transaction-list" aria-label="클레임 트랜잭션">
       ${transactions
         .map(
           (transaction) => `
@@ -239,8 +239,8 @@ function renderProfileLoading(): string {
 function renderProfileMissingWallet(): string {
   return `
     <div class="empty-state">
-      <p class="eyebrow">Missing wallet</p>
-      <h2>Profile unavailable</h2>
+      <p class="eyebrow">지갑 없음</p>
+      <h2>프로필을 사용할 수 없습니다</h2>
     </div>
   `;
 }
@@ -248,8 +248,8 @@ function renderProfileMissingWallet(): string {
 function renderProfileError(): string {
   return `
     <div class="empty-state empty-state--error">
-      <p class="eyebrow">Profile error</p>
-      <h2>Unable to load wallet history</h2>
+      <p class="eyebrow">프로필 오류</p>
+      <h2>지갑 기록을 불러오지 못했습니다</h2>
     </div>
   `;
 }
@@ -263,17 +263,27 @@ function formatReward(value: string, decimals: number): string {
 }
 
 function formatNullableHash(value: string | null): string {
-  return value ? shortenAddress(value) : "Not recorded";
+  return value ? shortenAddress(value) : "기록 없음";
 }
 
 function formatDateLabel(value: string | null): string {
-  if (!value) return "Not claimed";
+  if (!value) return "미클레임";
 
-  return new Intl.DateTimeFormat("en", {
+  return new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
     month: "short",
     day: "2-digit"
   }).format(new Date(value));
+}
+
+function formatInviteStatusLabel(value: string): string {
+  if (value === "Invited") return "초대됨";
+  if (value === "Pending") return "대기 중";
+  if (value === "WalletConnected") return "지갑 연결됨";
+  if (value === "Claimed") return "클레임 완료";
+  if (value === "Revoked") return "취소됨";
+
+  return value;
 }
 
 function escapeHtml(value: string): string {

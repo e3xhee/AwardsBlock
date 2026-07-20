@@ -1,5 +1,6 @@
 import {
   mapAwardBlockDetailToViewModel,
+  renderAwardDetailPage,
   type AwardBlockDetailResponse
 } from "./AwardDetailPage";
 
@@ -74,6 +75,14 @@ const response: AwardBlockDetailResponse = {
         txHash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         blockNumber: 123456,
         createdAt: "2026-08-02T01:00:00.000Z"
+      },
+      {
+        id: "transaction-2",
+        transactionType: "AwardClaimed",
+        walletAddress: "0x3333333333333333333333333333333333333333",
+        txHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        blockNumber: null,
+        createdAt: "2026-08-04T00:00:00.000Z"
       }
     ],
     claimStats: {
@@ -95,7 +104,7 @@ if (viewModel.rewardLabel !== "1 MNT") {
   throw new Error("Expected formatted total reward");
 }
 
-if (viewModel.claimProgress !== "1/2 claimed") {
+if (viewModel.claimProgress !== "1/2 클레임 완료") {
   throw new Error("Expected claim progress label");
 }
 
@@ -103,7 +112,7 @@ if (viewModel.organizerLabel !== "0x0123...4567") {
   throw new Error("Expected shortened organizer wallet");
 }
 
-if (viewModel.verificationLabel !== "Verified") {
+if (viewModel.verificationLabel !== "검증 완료") {
   throw new Error("Expected verified metadata label");
 }
 
@@ -119,10 +128,30 @@ if (viewModel.members[0]?.allocationLabel !== "0.5 MNT") {
   throw new Error("Expected formatted member allocation");
 }
 
-if (viewModel.members[1]?.walletLabel !== "Not connected") {
+if (viewModel.members[0]?.status !== "클레임 완료") {
+  throw new Error("Expected Korean member claim status");
+}
+
+if (viewModel.members[0]?.claimedAtLabel !== "2026년 8월 04일") {
+  throw new Error("Expected Korean member claimed date label");
+}
+
+if (viewModel.members[1]?.walletLabel !== "미연결") {
   throw new Error("Expected missing wallet label");
 }
 
 if (viewModel.transactions[0]?.txHashLabel !== "0xbbbb...bbbb") {
   throw new Error("Expected shortened transaction hash");
+}
+
+if (viewModel.transactions[1]?.typeLabel !== "리워드 클레임") {
+  throw new Error("Expected Korean claimed transaction type");
+}
+
+if (viewModel.transactions[1]?.blockLabel !== "블록 대기 중") {
+  throw new Error("Expected pending block label");
+}
+
+if (!renderAwardDetailPage("award-1").includes("어워드 블록")) {
+  throw new Error("Expected Korean award detail page title");
 }

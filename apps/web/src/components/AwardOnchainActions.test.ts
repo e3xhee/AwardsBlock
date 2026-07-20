@@ -28,7 +28,7 @@ if (!html.includes('data-onchain-action="fund"')) {
   throw new Error("Expected fund action for ready-to-fund awards");
 }
 
-if (!html.includes("어워드 펀딩")) {
+if (!html.includes("리워드 예치")) {
   throw new Error("Expected Korean fund action label");
 }
 
@@ -44,7 +44,7 @@ if (!renderAwardOnchainActions({ ...award, status: "Funded" }).includes("어워�
   throw new Error("Expected Korean finalize action label");
 }
 
-if (renderAwardOnchainActions({ ...award, contractAwardId: null }).includes("data-onchain-action=\"")) {
+if (renderAwardOnchainActions({ ...award, contractAwardId: null }).includes('data-onchain-action="')) {
   throw new Error("Expected missing contract award id to suppress actions");
 }
 
