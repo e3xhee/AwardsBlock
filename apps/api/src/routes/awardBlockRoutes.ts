@@ -8,6 +8,7 @@ type AwardBlockRow = {
   award_title: string;
   award_rank: string | null;
   award_status: string;
+  reward_token_address: string;
   reward_token_symbol: string;
   reward_token_decimals: number;
   total_reward: string;
@@ -33,6 +34,7 @@ type AwardBlockDetailRow = {
   award_reason: string | null;
   award_judging_summary: string | null;
   award_status: string;
+  reward_token_address: string;
   reward_token_symbol: string;
   reward_token_decimals: number;
   total_reward: string;
@@ -93,6 +95,7 @@ export function createAwardBlockRouter(database: DatabaseSync) {
            awards.title AS award_title,
            awards.rank AS award_rank,
            awards.status AS award_status,
+           awards.reward_token_address,
            awards.reward_token_symbol,
            awards.reward_token_decimals,
            awards.total_reward,
@@ -159,6 +162,7 @@ function toAwardBlockResponse(row: AwardBlockRow) {
       title: row.award_title,
       rank: row.award_rank,
       status: row.award_status,
+      rewardTokenAddress: row.reward_token_address,
       rewardTokenSymbol: row.reward_token_symbol,
       rewardTokenDecimals: row.reward_token_decimals,
       totalReward: row.total_reward,
@@ -187,6 +191,7 @@ function findAwardBlockDetail(
          awards.reason AS award_reason,
          awards.judging_summary AS award_judging_summary,
          awards.status AS award_status,
+         awards.reward_token_address,
          awards.reward_token_symbol,
          awards.reward_token_decimals,
          awards.total_reward,
@@ -295,6 +300,7 @@ function toAwardBlockDetailResponse(
       reason: row.award_reason,
       judgingSummary: row.award_judging_summary,
       status: row.award_status,
+      rewardTokenAddress: row.reward_token_address,
       rewardTokenSymbol: row.reward_token_symbol,
       rewardTokenDecimals: row.reward_token_decimals,
       totalReward: row.total_reward,

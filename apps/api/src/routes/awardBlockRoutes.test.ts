@@ -82,6 +82,7 @@ type AwardBlockListResponse = {
       rank: string | null;
       status: string;
       rewardTokenSymbol: string;
+      rewardTokenAddress: string;
       rewardTokenDecimals: number;
       totalReward: string;
       metadataHash: string | null;
@@ -124,6 +125,7 @@ type AwardBlockDetailResponse = {
       judgingSummary: string | null;
       status: string;
       rewardTokenSymbol: string;
+      rewardTokenAddress: string;
       rewardTokenDecimals: number;
       totalReward: string;
       claimStart: string;
@@ -347,6 +349,7 @@ test("public award blocks include latest award summaries and claim stats", async
     assert.equal(awardBlock.award.rank, awardInput.rank);
     assert.equal(awardBlock.award.status, awardInput.status);
     assert.equal(awardBlock.award.rewardTokenSymbol, awardInput.rewardTokenSymbol);
+    assert.equal(awardBlock.award.rewardTokenAddress, awardInput.rewardTokenAddress);
     assert.equal(awardBlock.award.rewardTokenDecimals, awardInput.rewardTokenDecimals);
     assert.equal(awardBlock.award.totalReward, awardInput.totalReward);
     assert.equal(awardBlock.award.metadataHash, awardInput.metadataHash);
@@ -392,6 +395,7 @@ test("public award block detail includes members and transactions", async () => 
     assert.equal(payload.awardBlock.award.title, awardInput.title);
     assert.equal(payload.awardBlock.award.reason, awardInput.reason);
     assert.equal(payload.awardBlock.award.judgingSummary, awardInput.judgingSummary);
+    assert.equal(payload.awardBlock.award.rewardTokenAddress, awardInput.rewardTokenAddress);
     assert.equal(payload.awardBlock.award.claimStart, awardInput.claimStart);
     assert.equal(payload.awardBlock.award.claimEnd, awardInput.claimEnd);
     assert.equal(payload.awardBlock.award.metadataUri, awardInput.metadataUri);

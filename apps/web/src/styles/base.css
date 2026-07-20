@@ -497,6 +497,20 @@ body {
   overflow-wrap: anywhere;
 }
 
+.onchain-actions {
+  gap: 12px;
+}
+
+.onchain-actions__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.onchain-actions--error [data-onchain-status] {
+  color: #9f2f2f;
+}
+
 .detail-metadata {
   display: grid;
   gap: 12px;

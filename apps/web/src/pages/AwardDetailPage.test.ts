@@ -32,6 +32,7 @@ const response: AwardBlockDetailResponse = {
       judgingSummary: "Strong product thinking and complete demo.",
       status: "Claiming",
       rewardTokenSymbol: "MNT",
+      rewardTokenAddress: "0x2222222222222222222222222222222222222222",
       rewardTokenDecimals: 18,
       totalReward: "1000000000000000000",
       claimStart: "2026-08-02T00:00:00.000Z",
@@ -104,6 +105,14 @@ if (viewModel.organizerLabel !== "0x0123...4567") {
 
 if (viewModel.verificationLabel !== "Verified") {
   throw new Error("Expected verified metadata label");
+}
+
+if (viewModel.onchainAward.contractAwardId !== "contract-award-1") {
+  throw new Error("Expected on-chain award contract ID");
+}
+
+if (viewModel.onchainAward.totalReward !== "1000000000000000000") {
+  throw new Error("Expected on-chain award reward amount");
 }
 
 if (viewModel.members[0]?.allocationLabel !== "0.5 MNT") {

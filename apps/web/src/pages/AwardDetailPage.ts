@@ -1,4 +1,9 @@
 import { apiGet } from "../api/client";
+import {
+  mountAwardOnchainActions,
+  renderAwardOnchainActions,
+  type OnchainAward
+} from "../components/AwardOnchainActions";
 import { formatTokenAmount, shortenAddress } from "../utils/format";
 
 export type AwardBlockDetailResponse = {
@@ -33,6 +38,7 @@ export type AwardBlockDetail = {
     judgingSummary: string | null;
     status: string;
     rewardTokenSymbol: string;
+    rewardTokenAddress: string;
     rewardTokenDecimals: number;
     totalReward: string;
     claimStart: string;
@@ -91,6 +97,7 @@ type AwardBlockDetailViewModel = {
   verificationLabel: string;
   metadataHashLabel: string;
   contractAwardIdLabel: string;
+  onchainAward: OnchainAward;
   members: Array<{
     id: string;
     displayName: string;
@@ -139,6 +146,7 @@ export async function mountAwardDetailPage(root: ParentNode, awardId: string): P
       `/award-blocks/${encodeURIComponent(awardId)}`
     );
     content.innerHTML = renderAwardDetailContent(mapAwardBlockDetailToViewModel(response.awardBlock));
+    mountAwardOnchainActions(content);
   } catch {
     content.innerHTML = renderAwardDetailError();
   }
@@ -172,6 +180,13 @@ export function mapAwardBlockDetailToViewModel(
       awardBlock.award.metadataHash && awardBlock.award.contractAwardId ? "Verified" : "Needs review",
     metadataHashLabel: awardBlock.award.metadataHash ?? "Not recorded",
     contractAwardIdLabel: awardBlock.award.contractAwardId ?? "Not recorded",
+    onchainAward: {
+      id: awardBlock.award.id,
+      contractAwardId: awardBlock.award.contractAwardId,
+      rewardTokenAddress: awardBlock.award.rewardTokenAddress,
+      totalReward: awardBlock.award.totalReward,
+      status: awardBlock.award.status
+    },
     members: awardBlock.members.map((member) => ({
       id: member.id,
       displayName: member.displayName,
@@ -226,6 +241,7 @@ function renderAwardDetailContent(awardBlock: AwardBlockDetailViewModel): string
         <div><dt>Contract award ID</dt><dd>${escapeHtml(awardBlock.contractAwardIdLabel)}</dd></div>
       </dl>
     </section>
+    ${renderAwardOnchainActions(awardBlock.onchainAward)}
     <section class="detail-section">
       <h2>Recipients</h2>
       ${renderMembers(awardBlock.members)}

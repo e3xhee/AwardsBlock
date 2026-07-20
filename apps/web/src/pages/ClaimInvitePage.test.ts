@@ -50,6 +50,7 @@ const awardBlock: AwardBlockDetail = {
     judgingSummary: "Strong product thinking and complete demo.",
     status: "Claiming",
     rewardTokenSymbol: "MNT",
+    rewardTokenAddress: "0x2222222222222222222222222222222222222222",
     rewardTokenDecimals: 18,
     totalReward: "1000000000000000000",
     claimStart: "2026-08-02T00:00:00.000Z",
