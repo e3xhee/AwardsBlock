@@ -28,12 +28,20 @@ if (!html.includes('data-onchain-action="fund"')) {
   throw new Error("Expected fund action for ready-to-fund awards");
 }
 
+if (!html.includes("어워드 펀딩")) {
+  throw new Error("Expected Korean fund action label");
+}
+
 if (
   !renderAwardOnchainActions({ ...award, status: "Funded" }).includes(
     'data-onchain-action="finalize"'
   )
 ) {
   throw new Error("Expected finalize action for funded awards");
+}
+
+if (!renderAwardOnchainActions({ ...award, status: "Funded" }).includes("어워드 확정")) {
+  throw new Error("Expected Korean finalize action label");
 }
 
 if (renderAwardOnchainActions({ ...award, contractAwardId: null }).includes("data-onchain-action=\"")) {
@@ -55,10 +63,15 @@ const provider: ContractWriteProvider = {
 };
 
 const posts: Array<{ path: string; body: unknown }> = [];
+const patches: Array<{ path: string; body: unknown }> = [];
 const api: AwardOnchainActionApi = {
   async post<TResponse, TBody = unknown>(path: string, body?: TBody) {
     posts.push({ path, body });
     return { transaction: { id: "transaction-1" } } as TResponse;
+  },
+  async patch<TResponse, TBody = unknown>(path: string, body?: TBody) {
+    patches.push({ path, body });
+    return { award: { id: "award-1" } } as TResponse;
   }
 };
 
@@ -92,4 +105,39 @@ if (
   })
 ) {
   throw new Error("Expected fund transaction record payload");
+}
+
+if (
+  JSON.stringify(patches[0]) !==
+  JSON.stringify({
+    path: "/awards/award-1",
+    body: {
+      fundTxHash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      status: "Funded"
+    }
+  })
+) {
+  throw new Error("Expected funded award patch after fund transaction");
+}
+
+await executeAwardOnchainAction({
+  action: "finalize",
+  award: { ...award, status: "Funded" },
+  from: "0x0123456789abcdef0123456789abcdef01234567",
+  registryAddress: "0x1111111111111111111111111111111111111111",
+  provider,
+  api
+});
+
+if (
+  JSON.stringify(patches[1]) !==
+  JSON.stringify({
+    path: "/awards/award-1",
+    body: {
+      finalizeTxHash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      status: "Claiming"
+    }
+  })
+) {
+  throw new Error("Expected claiming award patch after finalize transaction");
 }
