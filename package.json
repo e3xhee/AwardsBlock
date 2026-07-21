@@ -6,9 +6,9 @@
   "packageManager": "pnpm@9.0.0",
   "scripts": {
     "dev": "corepack pnpm --parallel --filter @awardblock/web --filter @awardblock/api dev",
-    "build": "corepack pnpm --filter @awardblock/shared --filter @awardblock/api --filter @awardblock/web build",
-    "test": "corepack pnpm --filter @awardblock/shared --filter @awardblock/api --filter @awardblock/web test",
-    "lint": "corepack pnpm --filter @awardblock/shared --filter @awardblock/api --filter @awardblock/web lint",
+    "build": "corepack pnpm --filter @awardblock/shared build && corepack pnpm --filter @awardblock/api --filter @awardblock/web build",
+    "test": "corepack pnpm --filter @awardblock/shared build && corepack pnpm --filter @awardblock/shared --filter @awardblock/api --filter @awardblock/web test",
+    "lint": "corepack pnpm --filter @awardblock/shared build && corepack pnpm --filter @awardblock/shared --filter @awardblock/api --filter @awardblock/web lint",
     "seed:demo": "corepack pnpm --filter @awardblock/api seed:demo",
     "format": "prettier --write .",
     "contracts:build": "corepack pnpm --filter @awardblock/contracts build",
