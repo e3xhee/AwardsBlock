@@ -361,7 +361,7 @@ try {
   setRecipientsFailure = error as Error;
 }
 
-if (setRecipientsFailure?.message !== "SET_RECIPIENTS_REJECTED") {
+if (setRecipientsFailure?.message !== "SET_RECIPIENTS_FAILED") {
   throw new Error("Expected setRecipients failure to reject organizer setup");
 }
 

@@ -2,6 +2,7 @@ import {
   buildOrganizerAwardPayloads,
   createOrganizerAwardSetup,
   getDefaultOrganizerAwardDraft,
+  getOrganizerSetupErrorCopy,
   renderOrganizerPage,
   renderOrganizerSuccess,
   type OrganizerAwardDraft,
@@ -98,6 +99,34 @@ if (!renderOrganizerPage().includes("data-wallet-auth")) {
 
 if (!renderOrganizerPage().includes("어워드 설정 생성")) {
   throw new Error("Expected organizer page to render Korean copy");
+}
+
+const recipientFailureCopy = getOrganizerSetupErrorCopy(
+  new Error("SET_RECIPIENTS_FAILED"),
+);
+
+if (recipientFailureCopy.eyebrow !== "수령자 배정 실패") {
+  throw new Error("Expected setRecipients failure eyebrow");
+}
+
+if (!recipientFailureCopy.title.includes("수령자 배정 트랜잭션")) {
+  throw new Error("Expected setRecipients failure title");
+}
+
+if (
+  !recipientFailureCopy.description.includes(
+    "DB에는 온체인 등록 상태를 저장하지 않았습니다",
+  )
+) {
+  throw new Error("Expected setRecipients failure persistence guidance");
+}
+
+const setupContextCopy = getOrganizerSetupErrorCopy(
+  new Error("ONCHAIN_CONTEXT_REQUIRED"),
+);
+
+if (!setupContextCopy.description.includes("Registry 컨트랙트 주소")) {
+  throw new Error("Expected on-chain context error to mention Registry setup");
 }
 
 const txHashes = [

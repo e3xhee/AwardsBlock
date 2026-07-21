@@ -149,6 +149,12 @@ type OrganizerSubmissionResult = {
   awardPath: string;
 };
 
+type OrganizerSetupErrorCopy = {
+  eyebrow: string;
+  title: string;
+  description: string;
+};
+
 type UpdatedAwardResponse = {
   award: {
     id: string;
@@ -296,8 +302,8 @@ export function mountOrganizerPage(root: ParentNode): void {
       );
       result.innerHTML = renderOrganizerSuccess(submission);
       form.reset();
-    } catch {
-      result.innerHTML = renderOrganizerError();
+    } catch (error) {
+      result.innerHTML = renderOrganizerError(error);
     } finally {
       if (submitButton) {
         submitButton.disabled = false;
@@ -429,21 +435,27 @@ export async function createOrganizerAwardSetup(
   );
 
   onStep("수령자 배정 등록");
-  const setRecipientsTxHash = await sendContractWrite(
-    provider,
-    buildSetRecipientsRequest({
-      from,
-      registryAddress: registryStatus.registryAddress,
-      awardId: award.award.id,
-      recipients: [
-        {
-          walletAddress:
-            member.member.walletAddress ?? payloads.member.walletAddress,
-          allocation: member.member.allocation,
-        },
-      ],
-    }),
-  );
+  let setRecipientsTxHash: string;
+
+  try {
+    setRecipientsTxHash = await sendContractWrite(
+      provider,
+      buildSetRecipientsRequest({
+        from,
+        registryAddress: registryStatus.registryAddress,
+        awardId: award.award.id,
+        recipients: [
+          {
+            walletAddress:
+              member.member.walletAddress ?? payloads.member.walletAddress,
+            allocation: member.member.allocation,
+          },
+        ],
+      }),
+    );
+  } catch {
+    throw new Error("SET_RECIPIENTS_FAILED");
+  }
 
   await api.patch<
     UpdatedAwardResponse,
@@ -665,11 +677,44 @@ export function renderOrganizerSuccess(
   `;
 }
 
-function renderOrganizerError(): string {
+export function getOrganizerSetupErrorCopy(
+  error: unknown,
+): OrganizerSetupErrorCopy {
+  const message = error instanceof Error ? error.message : "";
+
+  if (message === "ONCHAIN_CONTEXT_REQUIRED") {
+    return {
+      eyebrow: "설정 필요",
+      title: "지갑 또는 컨트랙트 설정이 필요합니다",
+      description:
+        "주최자 지갑을 연결하고 Registry 컨트랙트 주소를 확인한 뒤 다시 제출하세요.",
+    };
+  }
+
+  if (message === "SET_RECIPIENTS_FAILED") {
+    return {
+      eyebrow: "수령자 배정 실패",
+      title: "수령자 배정 트랜잭션이 완료되지 않았습니다",
+      description:
+        "createAward는 전송됐지만 setRecipients가 실패했습니다. DB에는 온체인 등록 상태를 저장하지 않았습니다.",
+    };
+  }
+
+  return {
+    eyebrow: "생성 실패",
+    title: "어워드 설정을 완료하지 못했습니다",
+    description:
+      "지갑 승인, 네트워크 상태, Registry 컨트랙트 주소를 확인한 뒤 다시 제출하세요.",
+  };
+}
+
+function renderOrganizerError(error: unknown): string {
+  const copy = getOrganizerSetupErrorCopy(error);
+
   return `
-    <p class="eyebrow">생성 실패</p>
-    <h2>주최자 지갑 세션과 컨트랙트 설정이 필요합니다</h2>
-    <p>지갑을 연결하고 registry 컨트랙트 주소를 설정한 뒤 다시 제출하세요.</p>
+    <p class="eyebrow">${escapeHtml(copy.eyebrow)}</p>
+    <h2>${escapeHtml(copy.title)}</h2>
+    <p>${escapeHtml(copy.description)}</p>
   `;
 }
 
