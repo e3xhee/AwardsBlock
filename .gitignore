@@ -1,6 +1,7 @@
 node_modules/
 .corepack/
 dist/
+.vite/
 build/
 coverage/
 .env
