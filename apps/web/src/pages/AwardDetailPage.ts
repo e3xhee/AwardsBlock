@@ -2,7 +2,7 @@ import { apiGet } from "../api/client";
 import {
   mountAwardOnchainActions,
   renderAwardOnchainActions,
-  type OnchainAward
+  type OnchainAward,
 } from "../components/AwardOnchainActions";
 import { formatTokenAmount, shortenAddress } from "../utils/format";
 
@@ -134,7 +134,10 @@ export function renderAwardDetailPage(awardId: string | null = null): string {
   `;
 }
 
-export async function mountAwardDetailPage(root: ParentNode, awardId: string): Promise<void> {
+export async function mountAwardDetailPage(
+  root: ParentNode,
+  awardId: string,
+): Promise<void> {
   const content = root.querySelector<HTMLElement>("#award-detail-content");
 
   if (!content) return;
@@ -143,9 +146,11 @@ export async function mountAwardDetailPage(root: ParentNode, awardId: string): P
 
   try {
     const response = await apiGet<AwardBlockDetailResponse>(
-      `/award-blocks/${encodeURIComponent(awardId)}`
+      `/award-blocks/${encodeURIComponent(awardId)}`,
     );
-    content.innerHTML = renderAwardDetailContent(mapAwardBlockDetailToViewModel(response.awardBlock));
+    content.innerHTML = renderAwardDetailContent(
+      mapAwardBlockDetailToViewModel(response.awardBlock),
+    );
     mountAwardOnchainActions(content);
   } catch {
     content.innerHTML = renderAwardDetailError();
@@ -153,7 +158,7 @@ export async function mountAwardDetailPage(root: ParentNode, awardId: string): P
 }
 
 export function mapAwardBlockDetailToViewModel(
-  awardBlock: AwardBlockDetail
+  awardBlock: AwardBlockDetail,
 ): AwardBlockDetailViewModel {
   return {
     id: awardBlock.id,
@@ -165,19 +170,22 @@ export function mapAwardBlockDetailToViewModel(
       ? `${awardBlock.award.rank} - ${awardBlock.award.title}`
       : awardBlock.award.title,
     awardReason: awardBlock.award.reason ?? "기록된 선정 사유가 없습니다",
-    judgingSummary: awardBlock.award.judgingSummary ?? "기록된 심사 요약이 없습니다",
+    judgingSummary:
+      awardBlock.award.judgingSummary ?? "기록된 심사 요약이 없습니다",
     status: formatAwardStatusLabel(awardBlock.award.status),
     organizerLabel: shortenAddress(awardBlock.organizerWallet),
     rewardLabel: `${formatReward(
       awardBlock.award.totalReward,
-      awardBlock.award.rewardTokenDecimals
+      awardBlock.award.rewardTokenDecimals,
     )} ${awardBlock.award.rewardTokenSymbol}`,
     claimProgress: `${awardBlock.claimStats.claimedCount}/${awardBlock.claimStats.recipientCount} 클레임 완료`,
     claimWindowLabel: `${formatDateLabel(awardBlock.award.claimStart)} - ${formatDateLabel(
-      awardBlock.award.claimEnd
+      awardBlock.award.claimEnd,
     )}`,
     verificationLabel:
-      awardBlock.award.metadataHash && awardBlock.award.contractAwardId ? "검증 완료" : "검토 필요",
+      awardBlock.award.metadataHash && awardBlock.award.contractAwardId
+        ? "검증 완료"
+        : "검토 필요",
     metadataHashLabel: awardBlock.award.metadataHash ?? "기록 없음",
     contractAwardIdLabel: awardBlock.award.contractAwardId ?? "기록 없음",
     onchainAward: {
@@ -185,33 +193,43 @@ export function mapAwardBlockDetailToViewModel(
       contractAwardId: awardBlock.award.contractAwardId,
       rewardTokenAddress: awardBlock.award.rewardTokenAddress,
       totalReward: awardBlock.award.totalReward,
-      status: awardBlock.award.status
+      status: awardBlock.award.status,
     },
     members: awardBlock.members.map((member) => ({
       id: member.id,
       displayName: member.displayName,
-      walletLabel: member.walletAddress ? shortenAddress(member.walletAddress) : "미연결",
+      walletLabel: member.walletAddress
+        ? shortenAddress(member.walletAddress)
+        : "미연결",
       allocationLabel: `${formatReward(
         member.allocation,
-        awardBlock.award.rewardTokenDecimals
+        awardBlock.award.rewardTokenDecimals,
       )} ${awardBlock.award.rewardTokenSymbol}`,
       status: formatInviteStatusLabel(member.inviteStatus),
       claimedAtLabel: formatNullableDateLabel(member.claimedAt),
-      claimTxLabel: member.claimTxHash ? shortenAddress(member.claimTxHash) : "기록 없음"
+      claimTxLabel: member.claimTxHash
+        ? shortenAddress(member.claimTxHash)
+        : "기록 없음",
     })),
-    transactions: awardBlock.transactions.map((transaction) => ({
-      id: transaction.id,
-      typeLabel: formatTransactionTypeLabel(transaction.transactionType),
-      walletLabel: shortenAddress(transaction.walletAddress),
-      txHashLabel: shortenAddress(transaction.txHash),
-      blockLabel:
-        transaction.blockNumber === null ? "블록 대기 중" : `#${transaction.blockNumber}`,
-      createdAtLabel: formatDateLabel(transaction.createdAt)
-    }))
+    transactions: sortAwardTransactions(awardBlock.transactions).map(
+      (transaction) => ({
+        id: transaction.id,
+        typeLabel: formatTransactionTypeLabel(transaction.transactionType),
+        walletLabel: shortenAddress(transaction.walletAddress),
+        txHashLabel: shortenAddress(transaction.txHash),
+        blockLabel:
+          transaction.blockNumber === null
+            ? "블록 대기 중"
+            : `#${transaction.blockNumber}`,
+        createdAtLabel: formatDateLabel(transaction.createdAt),
+      }),
+    ),
   };
 }
 
-function renderAwardDetailContent(awardBlock: AwardBlockDetailViewModel): string {
+function renderAwardDetailContent(
+  awardBlock: AwardBlockDetailViewModel,
+): string {
   return `
     <section class="award-detail-summary">
       <div>
@@ -279,7 +297,9 @@ function renderMembers(members: AwardBlockDetailViewModel["members"]): string {
   `;
 }
 
-function renderMember(member: AwardBlockDetailViewModel["members"][number]): string {
+function renderMember(
+  member: AwardBlockDetailViewModel["members"][number],
+): string {
   return `
     <article class="award-member-row">
       <div>
@@ -297,7 +317,7 @@ function renderMember(member: AwardBlockDetailViewModel["members"][number]): str
 }
 
 function renderTransactions(
-  transactions: AwardBlockDetailViewModel["transactions"]
+  transactions: AwardBlockDetailViewModel["transactions"],
 ): string {
   if (transactions.length === 0) {
     return `
@@ -317,10 +337,10 @@ function renderTransactions(
               <span>${escapeHtml(transaction.txHashLabel)}</span>
               <strong>${escapeHtml(transaction.typeLabel)}</strong>
               <small>${escapeHtml(transaction.blockLabel)} - ${escapeHtml(
-                transaction.createdAtLabel
+                transaction.createdAtLabel,
               )}</small>
             </li>
-          `
+          `,
         )
         .join("")}
     </ul>
@@ -366,7 +386,7 @@ function formatDateLabel(value: string): string {
   return new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
     month: "short",
-    day: "2-digit"
+    day: "2-digit",
   }).format(new Date(value));
 }
 
@@ -395,6 +415,7 @@ function formatInviteStatusLabel(value: string): string {
 }
 
 function formatTransactionTypeLabel(value: string): string {
+  if (value === "AwardRegistered") return "어워드 등록";
   if (value === "AwardCreated") return "어워드 생성";
   if (value === "RecipientsSet") return "수신자 설정";
   if (value === "AwardFunded") return "리워드 예치";
@@ -402,6 +423,38 @@ function formatTransactionTypeLabel(value: string): string {
   if (value === "AwardClaimed") return "리워드 클레임";
 
   return value;
+}
+
+function sortAwardTransactions(
+  transactions: AwardBlockTransaction[],
+): AwardBlockTransaction[] {
+  return [...transactions].sort((left, right) => {
+    const phaseDifference =
+      getTransactionPhaseOrder(left.transactionType) -
+      getTransactionPhaseOrder(right.transactionType);
+
+    if (phaseDifference !== 0) {
+      return phaseDifference;
+    }
+
+    return (
+      new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()
+    );
+  });
+}
+
+function getTransactionPhaseOrder(transactionType: string): number {
+  if (
+    transactionType === "AwardRegistered" ||
+    transactionType === "AwardCreated"
+  )
+    return 10;
+  if (transactionType === "RecipientsSet") return 20;
+  if (transactionType === "AwardFunded") return 30;
+  if (transactionType === "AwardFinalized") return 40;
+  if (transactionType === "AwardClaimed") return 50;
+
+  return 999;
 }
 
 function escapeHtml(value: string): string {

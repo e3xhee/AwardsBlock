@@ -1,7 +1,7 @@
 import {
   mapAwardBlockDetailToViewModel,
   renderAwardDetailPage,
-  type AwardBlockDetailResponse
+  type AwardBlockDetailResponse,
 } from "./AwardDetailPage";
 
 const response: AwardBlockDetailResponse = {
@@ -15,7 +15,7 @@ const response: AwardBlockDetailResponse = {
       startDate: "2026-08-01T09:00:00.000Z",
       endDate: "2026-08-01T18:00:00.000Z",
       location: "Seoul",
-      officialUrl: "https://awardblock.example/events/seoul-demo-day"
+      officialUrl: "https://awardblock.example/events/seoul-demo-day",
     },
     project: {
       id: "project-1",
@@ -23,7 +23,7 @@ const response: AwardBlockDetailResponse = {
       tagline: "Verifiable award submissions",
       description: "A project that makes award review traceable.",
       githubUrl: "https://github.com/example/proofboard",
-      demoUrl: "https://proofboard.example"
+      demoUrl: "https://proofboard.example",
     },
     award: {
       id: "award-1",
@@ -42,8 +42,9 @@ const response: AwardBlockDetailResponse = {
       metadataHash: "0xabc123",
       contractAwardId: "contract-award-1",
       createTxHash: null,
-      fundTxHash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      finalizeTxHash: null
+      fundTxHash:
+        "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      finalizeTxHash: null,
     },
     members: [
       {
@@ -54,7 +55,8 @@ const response: AwardBlockDetailResponse = {
         inviteStatus: "Claimed",
         walletConnectedAt: "2026-08-03T00:00:00.000Z",
         claimedAt: "2026-08-04T00:00:00.000Z",
-        claimTxHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        claimTxHash:
+          "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       },
       {
         id: "member-2",
@@ -64,34 +66,54 @@ const response: AwardBlockDetailResponse = {
         inviteStatus: "Pending",
         walletConnectedAt: null,
         claimedAt: null,
-        claimTxHash: null
-      }
+        claimTxHash: null,
+      },
     ],
     transactions: [
       {
         id: "transaction-1",
-        transactionType: "AwardFunded",
-        walletAddress: "0x0123456789abcdef0123456789abcdef01234567",
-        txHash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        blockNumber: 123456,
-        createdAt: "2026-08-02T01:00:00.000Z"
+        transactionType: "AwardClaimed",
+        walletAddress: "0x3333333333333333333333333333333333333333",
+        txHash:
+          "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        blockNumber: null,
+        createdAt: "2026-08-04T00:00:00.000Z",
       },
       {
         id: "transaction-2",
-        transactionType: "AwardClaimed",
+        transactionType: "AwardFunded",
+        walletAddress: "0x0123456789abcdef0123456789abcdef01234567",
+        txHash:
+          "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        blockNumber: 123456,
+        createdAt: "2026-08-02T01:00:00.000Z",
+      },
+      {
+        id: "transaction-3",
+        transactionType: "RecipientsSet",
         walletAddress: "0x3333333333333333333333333333333333333333",
-        txHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        txHash:
+          "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         blockNumber: null,
-        createdAt: "2026-08-04T00:00:00.000Z"
-      }
+        createdAt: "2026-08-01T19:00:00.000Z",
+      },
+      {
+        id: "transaction-4",
+        transactionType: "AwardRegistered",
+        walletAddress: "0x0123456789abcdef0123456789abcdef01234567",
+        txHash:
+          "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        blockNumber: null,
+        createdAt: "2026-08-01T18:30:00.000Z",
+      },
     ],
     claimStats: {
       recipientCount: 2,
-      claimedCount: 1
+      claimedCount: 1,
     },
     createdAt: "2026-08-01T18:00:00.000Z",
-    updatedAt: "2026-08-01T18:00:00.000Z"
-  }
+    updatedAt: "2026-08-01T18:00:00.000Z",
+  },
 };
 
 const viewModel = mapAwardBlockDetailToViewModel(response.awardBlock);
@@ -140,15 +162,28 @@ if (viewModel.members[1]?.walletLabel !== "미연결") {
   throw new Error("Expected missing wallet label");
 }
 
-if (viewModel.transactions[0]?.txHashLabel !== "0xbbbb...bbbb") {
-  throw new Error("Expected shortened transaction hash");
+const transactionTypeLabels = viewModel.transactions.map(
+  (transaction) => transaction.typeLabel,
+);
+
+if (
+  JSON.stringify(transactionTypeLabels) !==
+  JSON.stringify(["어워드 등록", "수신자 설정", "리워드 예치", "리워드 클레임"])
+) {
+  throw new Error(
+    "Expected transaction labels to follow award lifecycle order",
+  );
 }
 
-if (viewModel.transactions[1]?.typeLabel !== "리워드 클레임") {
+if (viewModel.transactions[2]?.txHashLabel !== "0xbbbb...bbbb") {
+  throw new Error("Expected shortened funded transaction hash");
+}
+
+if (viewModel.transactions[3]?.typeLabel !== "리워드 클레임") {
   throw new Error("Expected Korean claimed transaction type");
 }
 
-if (viewModel.transactions[1]?.blockLabel !== "블록 대기 중") {
+if (viewModel.transactions[3]?.blockLabel !== "블록 대기 중") {
   throw new Error("Expected pending block label");
 }
 
