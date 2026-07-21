@@ -4,9 +4,12 @@ import {
   getDefaultOrganizerAwardDraft,
   renderOrganizerPage,
   renderOrganizerSuccess,
-  type OrganizerAwardDraft
+  type OrganizerAwardDraft,
 } from "./OrganizerPage";
-import { buildAwardContractId, type ContractWriteProvider } from "../blockchain/awardRegistry";
+import {
+  buildAwardContractId,
+  type ContractWriteProvider,
+} from "../blockchain/awardRegistry";
 
 const draft: OrganizerAwardDraft = {
   eventName: "Seoul Demo Day",
@@ -38,7 +41,7 @@ const draft: OrganizerAwardDraft = {
   recipientEmail: "ada@example.com",
   recipientWalletAddress: "0x3333333333333333333333333333333333333333",
   recipientAllocation: "600000",
-  inviteExpiresAt: "2026-08-15T00:00:00.000Z"
+  inviteExpiresAt: "2026-08-15T00:00:00.000Z",
 };
 
 const payloads = buildOrganizerAwardPayloads(draft);
@@ -60,11 +63,15 @@ if (payloads.award.rewardTokenDecimals !== 6) {
 }
 
 if (getDefaultOrganizerAwardDraft().rewardTokenSymbol !== "mUSDC") {
-  throw new Error("Expected default organizer reward token to match local MockUSDC");
+  throw new Error(
+    "Expected default organizer reward token to match local MockUSDC",
+  );
 }
 
 if (payloads.award.status !== "Draft") {
-  throw new Error("Expected award to start as Draft before on-chain registration");
+  throw new Error(
+    "Expected award to start as Draft before on-chain registration",
+  );
 }
 
 if (payloads.award.metadataHash !== null) {
@@ -75,7 +82,9 @@ if (payloads.member.email !== "ada@example.com") {
   throw new Error("Expected member email payload");
 }
 
-if (payloads.member.walletAddress !== "0x3333333333333333333333333333333333333333") {
+if (
+  payloads.member.walletAddress !== "0x3333333333333333333333333333333333333333"
+) {
   throw new Error("Expected member wallet address payload");
 }
 
@@ -93,20 +102,20 @@ if (!renderOrganizerPage().includes("어워드 설정 생성")) {
 
 const txHashes = [
   "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-  "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
 ];
 const providerRequests: Array<{ method: string; params?: unknown }> = [];
 const provider: ContractWriteProvider = {
   async request<TResponse = unknown>({
     method,
-    params
+    params,
   }: {
     method: string;
     params?: unknown[] | Record<string, unknown>;
   }) {
     providerRequests.push({ method, params });
     return txHashes[providerRequests.length - 1] as TResponse;
-  }
+  },
 };
 
 const postCalls: Array<{ path: string; body: unknown }> = [];
@@ -133,13 +142,15 @@ const api = {
           id: "member-1",
           displayName: "Ada Lee",
           walletAddress: "0x3333333333333333333333333333333333333333",
-          allocation: "600000"
-        }
+          allocation: "600000",
+        },
       } as TResponse;
     }
 
     if (path === "/award-members/member-1/claim-invites") {
-      return { invite: { id: "invite-1", token: "invite-token-1" } } as TResponse;
+      return {
+        invite: { id: "invite-1", token: "invite-token-1" },
+      } as TResponse;
     }
 
     if (path === "/awards/award-1/transactions") {
@@ -151,16 +162,20 @@ const api = {
   async patch<TResponse, TBody = unknown>(path: string, body?: TBody) {
     patchCalls.push({ path, body });
     return { award: { id: "award-1", title: "Best Product" } } as TResponse;
-  }
+  },
 };
 
 const steps: string[] = [];
-const result = await createOrganizerAwardSetup(draft, (step) => steps.push(step), {
-  api,
-  provider,
-  from: "0x0123456789abcdef0123456789abcdef01234567",
-  registryAddress: "0x1111111111111111111111111111111111111111"
-});
+const result = await createOrganizerAwardSetup(
+  draft,
+  (step) => steps.push(step),
+  {
+    api,
+    provider,
+    from: "0x0123456789abcdef0123456789abcdef01234567",
+    registryAddress: "0x1111111111111111111111111111111111111111",
+  },
+);
 
 if (!steps.includes("온체인 어워드 생성")) {
   throw new Error("Expected on-chain create step");
@@ -190,23 +205,14 @@ if (
     path: "/awards/award-1",
     body: {
       contractAwardId,
-      createTxHash: txHashes[0]
-    }
+      createTxHash: txHashes[0],
+      status: "ReadyToFund",
+    },
   })
 ) {
-  throw new Error("Expected award contract id and create tx patch");
-}
-
-if (
-  JSON.stringify(patchCalls[1]) !==
-  JSON.stringify({
-    path: "/awards/award-1",
-    body: {
-      status: "ReadyToFund"
-    }
-  })
-) {
-  throw new Error("Expected ReadyToFund status patch after setRecipients");
+  throw new Error(
+    "Expected award contract id, create tx, and ReadyToFund status patch",
+  );
 }
 
 if (
@@ -216,8 +222,8 @@ if (
     body: {
       transactionType: "AwardRegistered",
       walletAddress: "0x0123456789abcdef0123456789abcdef01234567",
-      txHash: txHashes[0]
-    }
+      txHash: txHashes[0],
+    },
   })
 ) {
   throw new Error("Expected AwardRegistered transaction record");

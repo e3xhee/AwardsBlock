@@ -428,30 +428,6 @@ export async function createOrganizerAwardSetup(
     }),
   );
 
-  await api.patch<
-    UpdatedAwardResponse,
-    {
-      contractAwardId: string;
-      createTxHash: string;
-    }
-  >(`/awards/${encodeURIComponent(award.award.id)}`, {
-    contractAwardId,
-    createTxHash,
-  });
-
-  await api.post<
-    CreatedTransactionResponse,
-    {
-      transactionType: string;
-      walletAddress: string;
-      txHash: string;
-    }
-  >(`/awards/${encodeURIComponent(award.award.id)}/transactions`, {
-    transactionType: "AwardRegistered",
-    walletAddress: from,
-    txHash: createTxHash,
-  });
-
   onStep("수령자 배정 등록");
   const setRecipientsTxHash = await sendContractWrite(
     provider,
@@ -472,10 +448,27 @@ export async function createOrganizerAwardSetup(
   await api.patch<
     UpdatedAwardResponse,
     {
+      contractAwardId: string;
+      createTxHash: string;
       status: string;
     }
   >(`/awards/${encodeURIComponent(award.award.id)}`, {
+    contractAwardId,
+    createTxHash,
     status: "ReadyToFund",
+  });
+
+  await api.post<
+    CreatedTransactionResponse,
+    {
+      transactionType: string;
+      walletAddress: string;
+      txHash: string;
+    }
+  >(`/awards/${encodeURIComponent(award.award.id)}/transactions`, {
+    transactionType: "AwardRegistered",
+    walletAddress: from,
+    txHash: createTxHash,
   });
 
   return {
