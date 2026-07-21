@@ -10,6 +10,7 @@ import {
   chainConfig,
   getOnchainConfigStatus,
   getRegistryConfigStatus,
+  type OnchainConfigStatus,
 } from "../blockchain/config";
 import { getBrowserEthereumProvider } from "../auth/walletAuth";
 import {
@@ -153,6 +154,9 @@ type OrganizerSetupErrorCopy = {
   eyebrow: string;
   title: string;
   description: string;
+  currentStep: string;
+  retryAction: string;
+  configStatus: string;
 };
 
 type UpdatedAwardResponse = {
@@ -679,8 +683,10 @@ export function renderOrganizerSuccess(
 
 export function getOrganizerSetupErrorCopy(
   error: unknown,
+  onchainConfigStatus: OnchainConfigStatus = getOnchainConfigStatus(),
 ): OrganizerSetupErrorCopy {
   const message = error instanceof Error ? error.message : "";
+  const configStatus = formatOrganizerConfigStatus(onchainConfigStatus);
 
   if (message === "ONCHAIN_CONTEXT_REQUIRED") {
     return {
@@ -688,6 +694,10 @@ export function getOrganizerSetupErrorCopy(
       title: "지갑 또는 컨트랙트 설정이 필요합니다",
       description:
         "주최자 지갑을 연결하고 Registry 컨트랙트 주소를 확인한 뒤 다시 제출하세요.",
+      currentStep: "온체인 사전 확인",
+      retryAction:
+        "지갑 연결과 Registry 컨트랙트 주소를 확인한 뒤 다시 제출하세요.",
+      configStatus,
     };
   }
 
@@ -697,6 +707,10 @@ export function getOrganizerSetupErrorCopy(
       title: "수령자 배정 트랜잭션이 완료되지 않았습니다",
       description:
         "createAward는 전송됐지만 setRecipients가 실패했습니다. DB에는 온체인 등록 상태를 저장하지 않았습니다.",
+      currentStep: "수령자 배정 등록",
+      retryAction:
+        "지갑에서 setRecipients 트랜잭션을 다시 승인하면 같은 어워드 설정을 재시도할 수 있습니다.",
+      configStatus,
     };
   }
 
@@ -705,6 +719,9 @@ export function getOrganizerSetupErrorCopy(
     title: "어워드 설정을 완료하지 못했습니다",
     description:
       "지갑 승인, 네트워크 상태, Registry 컨트랙트 주소를 확인한 뒤 다시 제출하세요.",
+    currentStep: "어워드 설정 생성",
+    retryAction: "지갑 승인 상태와 네트워크 연결을 확인한 뒤 다시 제출하세요.",
+    configStatus,
   };
 }
 
@@ -715,7 +732,20 @@ function renderOrganizerError(error: unknown): string {
     <p class="eyebrow">${escapeHtml(copy.eyebrow)}</p>
     <h2>${escapeHtml(copy.title)}</h2>
     <p>${escapeHtml(copy.description)}</p>
+    <dl class="organizer-result-list">
+      <div><dt>현재 단계</dt><dd>${escapeHtml(copy.currentStep)}</dd></div>
+      <div><dt>재시도</dt><dd>${escapeHtml(copy.retryAction)}</dd></div>
+      <div><dt>설정 상태</dt><dd>${escapeHtml(copy.configStatus)}</dd></div>
+    </dl>
   `;
+}
+
+function formatOrganizerConfigStatus(status: OnchainConfigStatus): string {
+  if (!status.ready) {
+    return `온체인 설정 필요: ${status.missing.join(", ") || "알 수 없음"}`;
+  }
+
+  return `온체인 설정 준비됨: Chain ID ${status.chainId}, Registry ${status.registryAddress}, mUSDC ${status.mockUsdcAddress}`;
 }
 
 function readFormString(

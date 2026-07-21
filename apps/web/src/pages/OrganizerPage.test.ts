@@ -11,6 +11,7 @@ import {
   buildAwardContractId,
   type ContractWriteProvider,
 } from "../blockchain/awardRegistry";
+import type { OnchainConfigStatus } from "../blockchain/config";
 
 const draft: OrganizerAwardDraft = {
   eventName: "Seoul Demo Day",
@@ -101,8 +102,18 @@ if (!renderOrganizerPage().includes("어워드 설정 생성")) {
   throw new Error("Expected organizer page to render Korean copy");
 }
 
+const configuredOnchainStatus: OnchainConfigStatus = {
+  ready: true,
+  missing: [],
+  message: "온체인 설정이 준비되었습니다.",
+  chainId: 31337,
+  registryAddress: "0x1111111111111111111111111111111111111111",
+  mockUsdcAddress: "0x2222222222222222222222222222222222222222",
+};
+
 const recipientFailureCopy = getOrganizerSetupErrorCopy(
   new Error("SET_RECIPIENTS_FAILED"),
+  configuredOnchainStatus,
 );
 
 if (recipientFailureCopy.eyebrow !== "수령자 배정 실패") {
@@ -119,6 +130,18 @@ if (
   )
 ) {
   throw new Error("Expected setRecipients failure persistence guidance");
+}
+
+if (recipientFailureCopy.currentStep !== "수령자 배정 등록") {
+  throw new Error("Expected setRecipients failure to expose current step");
+}
+
+if (!recipientFailureCopy.retryAction.includes("setRecipients")) {
+  throw new Error("Expected setRecipients failure retry action");
+}
+
+if (!recipientFailureCopy.configStatus.includes("Registry")) {
+  throw new Error("Expected setRecipients failure to expose config status");
 }
 
 const setupContextCopy = getOrganizerSetupErrorCopy(
