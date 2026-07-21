@@ -1,4 +1,8 @@
 import {
+  awardDistributionRegistryAbi,
+  mockUsdcAbi
+} from "@awardblock/shared";
+import {
   encodeFunctionData,
   isAddress,
   keccak256,
@@ -37,72 +41,8 @@ type RegistryCall =
   | { functionName: "finalizeAward"; args: [Hex] }
   | { functionName: "claim"; args: [Hex] };
 
-export const awardRegistryAbi = [
-  {
-    type: "function",
-    name: "createAward",
-    stateMutability: "nonpayable",
-    inputs: [
-      { name: "awardId", type: "bytes32" },
-      { name: "eventId", type: "bytes32" },
-      { name: "projectId", type: "bytes32" },
-      { name: "metadataURI", type: "string" },
-      { name: "metadataHash", type: "bytes32" },
-      { name: "rewardToken", type: "address" },
-      { name: "claimStart", type: "uint64" },
-      { name: "claimEnd", type: "uint64" }
-    ],
-    outputs: []
-  },
-  {
-    type: "function",
-    name: "setRecipients",
-    stateMutability: "nonpayable",
-    inputs: [
-      { name: "awardId", type: "bytes32" },
-      { name: "recipients", type: "address[]" },
-      { name: "amounts", type: "uint256[]" }
-    ],
-    outputs: []
-  },
-  {
-    type: "function",
-    name: "fundAward",
-    stateMutability: "nonpayable",
-    inputs: [
-      { name: "awardId", type: "bytes32" },
-      { name: "amount", type: "uint256" }
-    ],
-    outputs: []
-  },
-  {
-    type: "function",
-    name: "finalizeAward",
-    stateMutability: "nonpayable",
-    inputs: [{ name: "awardId", type: "bytes32" }],
-    outputs: []
-  },
-  {
-    type: "function",
-    name: "claim",
-    stateMutability: "nonpayable",
-    inputs: [{ name: "awardId", type: "bytes32" }],
-    outputs: []
-  }
-] as const;
-
-export const erc20ApproveAbi = [
-  {
-    type: "function",
-    name: "approve",
-    stateMutability: "nonpayable",
-    inputs: [
-      { name: "spender", type: "address" },
-      { name: "amount", type: "uint256" }
-    ],
-    outputs: [{ name: "", type: "bool" }]
-  }
-] as const;
+export const awardRegistryAbi = awardDistributionRegistryAbi;
+export const erc20ApproveAbi = mockUsdcAbi;
 
 export function buildAwardContractId(value: string): Hex {
   const trimmed = value.trim();
