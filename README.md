@@ -52,6 +52,30 @@ corepack pnpm dev
 - API: `http://localhost:4000`
 - 기본 SQLite DB: `apps/api/data/awardblock.sqlite`
 
+## 온체인 환경 변수
+
+웹에서 지갑 트랜잭션과 어워드 상세 페이지의 블록 익스플로러 링크를 사용하려면 `.env.example`을 기준으로 `.env.local`을 준비합니다.
+
+```bash
+copy .env.example .env.local
+```
+
+주요 값:
+
+- `VITE_CHAIN_ID`: 연결할 체인 ID입니다. 로컬 Anvil은 기본값 `31337`을 사용합니다.
+- `VITE_RPC_URL`: 웹이 참고하는 RPC URL입니다.
+- `VITE_BLOCK_EXPLORER_URL`: 트랜잭션 해시 링크의 기준 URL입니다. 로컬에 익스플로러가 없으면 비워둬도 됩니다.
+- `VITE_REGISTRY_CONTRACT_ADDRESS`: `AwardDistributionRegistry` 컨트랙트 주소입니다.
+- `VITE_MOCK_USDC_ADDRESS`: 로컬/테스트넷 리워드 토큰 주소입니다.
+
+컨트랙트 배포 후에는 아래 명령으로 루트 `.env.local`과 `apps/web/.env.local`을 함께 동기화할 수 있습니다.
+
+```bash
+corepack pnpm contracts:sync-env -- --registry 0x... --mock-usdc 0x... --block-explorer-url https://explorer.sepolia.mantle.xyz
+```
+
+로컬 Anvil처럼 블록 익스플로러가 없는 환경에서는 `--block-explorer-url`을 생략하면 트랜잭션 해시가 일반 텍스트로 표시됩니다.
+
 ## 데모 데이터
 
 로컬에서 빈 화면 대신 바로 확인 가능한 데모 어워드 데이터를 넣을 수 있습니다.
