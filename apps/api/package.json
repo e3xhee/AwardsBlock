@@ -1,0 +1,27 @@
+{
+  "name": "@awardblock/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "seed:demo": "tsx src/database/seedDemo.ts",
+    "test": "node --no-warnings --import tsx --test src/database/demoSeed.test.ts src/routes/eventRoutes.test.ts src/routes/authRoutes.test.ts src/routes/projectRoutes.test.ts src/routes/awardRoutes.test.ts src/routes/awardMemberRoutes.test.ts src/routes/claimInviteRoutes.test.ts src/routes/transactionRecordRoutes.test.ts src/routes/profileRoutes.test.ts src/routes/awardBlockRoutes.test.ts",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "viem": "^2.21.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.7",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "tsx": "^4.19.0"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "awardblock",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Verifiable Web3 award archive and ERC-20 claim platform for hackathons and builder programs.",
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev": "corepack pnpm --parallel --filter @awardblock/web --filter @awardblock/api dev",
+    "build": "corepack pnpm --filter @awardblock/shared --filter @awardblock/api --filter @awardblock/web build",
+    "test": "corepack pnpm --filter @awardblock/shared --filter @awardblock/api --filter @awardblock/web test",
+    "lint": "corepack pnpm --filter @awardblock/shared --filter @awardblock/api --filter @awardblock/web lint",
+    "seed:demo": "corepack pnpm --filter @awardblock/api seed:demo",
+    "format": "prettier --write .",
+    "contracts:build": "corepack pnpm --filter @awardblock/contracts build",
+    "contracts:test": "corepack pnpm --filter @awardblock/contracts test"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "prettier": "^3.3.0",
+    "typescript": "^5.5.0"
+  }
+}
