@@ -4,6 +4,7 @@ import {
   renderAwardOnchainActions,
   type OnchainAward,
 } from "../components/AwardOnchainActions";
+import { chainConfig } from "../blockchain/config";
 import { formatTokenAmount, shortenAddress } from "../utils/format";
 
 export type AwardBlockDetailResponse = {
@@ -112,6 +113,7 @@ type AwardBlockDetailViewModel = {
     typeLabel: string;
     walletLabel: string;
     txHashLabel: string;
+    txUrl: string | null;
     blockLabel: string;
     createdAtLabel: string;
   }>;
@@ -159,6 +161,7 @@ export async function mountAwardDetailPage(
 
 export function mapAwardBlockDetailToViewModel(
   awardBlock: AwardBlockDetail,
+  blockExplorerUrl: string = chainConfig.blockExplorerUrl,
 ): AwardBlockDetailViewModel {
   return {
     id: awardBlock.id,
@@ -217,6 +220,10 @@ export function mapAwardBlockDetailToViewModel(
         typeLabel: formatTransactionTypeLabel(transaction.transactionType),
         walletLabel: shortenAddress(transaction.walletAddress),
         txHashLabel: shortenAddress(transaction.txHash),
+        txUrl: buildTransactionExplorerUrl(
+          blockExplorerUrl,
+          transaction.txHash,
+        ),
         blockLabel:
           transaction.blockNumber === null
             ? "블록 대기 중"
@@ -334,7 +341,7 @@ function renderTransactions(
         .map(
           (transaction) => `
             <li>
-              <span>${escapeHtml(transaction.txHashLabel)}</span>
+              ${renderTransactionHash(transaction)}
               <strong>${escapeHtml(transaction.typeLabel)}</strong>
               <small>${escapeHtml(transaction.blockLabel)} - ${escapeHtml(
                 transaction.createdAtLabel,
@@ -345,6 +352,16 @@ function renderTransactions(
         .join("")}
     </ul>
   `;
+}
+
+function renderTransactionHash(
+  transaction: AwardBlockDetailViewModel["transactions"][number],
+): string {
+  if (!transaction.txUrl) {
+    return `<span>${escapeHtml(transaction.txHashLabel)}</span>`;
+  }
+
+  return `<a class="text-link" href="${escapeHtml(transaction.txUrl)}" target="_blank" rel="noreferrer">${escapeHtml(transaction.txHashLabel)}</a>`;
 }
 
 function renderAwardDetailLoading(): string {
@@ -423,6 +440,19 @@ function formatTransactionTypeLabel(value: string): string {
   if (value === "AwardClaimed") return "리워드 클레임";
 
   return value;
+}
+
+function buildTransactionExplorerUrl(
+  blockExplorerUrl: string,
+  txHash: string,
+): string | null {
+  const normalizedExplorerUrl = blockExplorerUrl.trim().replace(/\/+$/, "");
+
+  if (!normalizedExplorerUrl) {
+    return null;
+  }
+
+  return `${normalizedExplorerUrl}/tx/${txHash}`;
 }
 
 function sortAwardTransactions(

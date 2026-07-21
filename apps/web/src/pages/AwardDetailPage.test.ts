@@ -117,6 +117,10 @@ const response: AwardBlockDetailResponse = {
 };
 
 const viewModel = mapAwardBlockDetailToViewModel(response.awardBlock);
+const explorerViewModel = mapAwardBlockDetailToViewModel(
+  response.awardBlock,
+  "https://explorer.test",
+);
 
 if (viewModel.awardTitle !== "1st - Best Product") {
   throw new Error("Expected ranked award title");
@@ -177,6 +181,13 @@ if (
 
 if (viewModel.transactions[2]?.txHashLabel !== "0xbbbb...bbbb") {
   throw new Error("Expected shortened funded transaction hash");
+}
+
+if (
+  explorerViewModel.transactions[0]?.txUrl !==
+  "https://explorer.test/tx/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+) {
+  throw new Error("Expected transaction hash to link to block explorer");
 }
 
 if (viewModel.transactions[3]?.typeLabel !== "리워드 클레임") {
