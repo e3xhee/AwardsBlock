@@ -12,6 +12,7 @@
     "seed:demo": "corepack pnpm --filter @awardblock/api seed:demo",
     "format": "prettier --write .",
     "contracts:build": "corepack pnpm --filter @awardblock/contracts build",
+    "contracts:sync-env": "corepack pnpm --filter @awardblock/contracts sync:env",
     "contracts:test": "corepack pnpm --filter @awardblock/contracts test"
   },
   "devDependencies": {

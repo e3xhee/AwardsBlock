@@ -1,6 +1,7 @@
 import {
   buildOrganizerAwardPayloads,
   createOrganizerAwardSetup,
+  getDefaultOrganizerAwardDraft,
   renderOrganizerPage,
   renderOrganizerSuccess,
   type OrganizerAwardDraft
@@ -54,8 +55,12 @@ if (payloads.project.demoUrl !== null) {
   throw new Error("Expected blank project demo URL to become null");
 }
 
-if (payloads.award.rewardTokenDecimals !== 18) {
+if (payloads.award.rewardTokenDecimals !== 6) {
   throw new Error("Expected reward decimals to become a number");
+}
+
+if (getDefaultOrganizerAwardDraft().rewardTokenSymbol !== "mUSDC") {
+  throw new Error("Expected default organizer reward token to match local MockUSDC");
 }
 
 if (payloads.award.status !== "Draft") {

@@ -174,7 +174,9 @@ const defaultApi: OrganizerAwardSetupApi = {
   patch: apiPatch
 };
 
-const defaultDraft: OrganizerAwardDraft = {
+const fallbackMockUsdcAddress = "0x2222222222222222222222222222222222222222";
+
+const baseDefaultDraft: OrganizerAwardDraft = {
   eventName: "Seoul Demo Day",
   eventDescription: "Demo day for builder award submissions",
   eventStartDate: "2026-08-01T09:00:00.000Z",
@@ -192,7 +194,7 @@ const defaultDraft: OrganizerAwardDraft = {
   awardRank: "1st",
   awardReason: "The team delivered the clearest user-facing award flow.",
   judgingSummary: "Strong product thinking and complete demo.",
-  rewardTokenAddress: "0x2222222222222222222222222222222222222222",
+  rewardTokenAddress: fallbackMockUsdcAddress,
   rewardTokenSymbol: "mUSDC",
   rewardTokenDecimals: "6",
   totalReward: "1000000",
@@ -207,7 +209,16 @@ const defaultDraft: OrganizerAwardDraft = {
   inviteExpiresAt: "2026-08-15T00:00:00.000Z"
 };
 
+export function getDefaultOrganizerAwardDraft(): OrganizerAwardDraft {
+  return {
+    ...baseDefaultDraft,
+    rewardTokenAddress: chainConfig.mockUsdcAddress || fallbackMockUsdcAddress
+  };
+}
+
 export function renderOrganizerPage(): string {
+  const defaultDraft = getDefaultOrganizerAwardDraft();
+
   return `
     <main class="page-shell organizer-page">
       <section class="organizer-hero">

@@ -5,6 +5,7 @@
   "scripts": {
     "build": "forge build && node scripts/copyAbi.mjs",
     "copy:abi": "node scripts/copyAbi.mjs",
+    "sync:env": "node scripts/syncDeploymentEnv.mjs",
     "test": "forge test",
     "lint": "forge fmt --check",
     "format": "forge fmt"
