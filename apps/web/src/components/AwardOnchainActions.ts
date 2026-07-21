@@ -4,6 +4,7 @@ import {
   buildClaimAwardRequest,
   buildFinalizeAwardRequest,
   buildFundAwardRequest,
+  readTransactionReceiptBlockNumber,
   sendContractWrite,
   type ContractWriteProvider,
 } from "../blockchain/awardRegistry";
@@ -172,6 +173,7 @@ export async function executeAwardOnchainAction({
             });
 
   const txHash = await sendContractWrite(provider, request);
+  const blockNumber = await readTransactionReceiptBlockNumber(provider, txHash);
   const transactionType = getTransactionRecordType(action);
 
   if (transactionType) {
@@ -181,11 +183,13 @@ export async function executeAwardOnchainAction({
         transactionType: string;
         walletAddress: string;
         txHash: string;
+        blockNumber: number | null;
       }
     >(`/awards/${encodeURIComponent(award.id)}/transactions`, {
       transactionType,
       walletAddress: from,
       txHash,
+      blockNumber,
     });
   }
 

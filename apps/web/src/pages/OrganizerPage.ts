@@ -3,6 +3,7 @@ import {
   buildAwardContractId,
   buildCreateAwardRequest,
   buildSetRecipientsRequest,
+  readTransactionReceiptBlockNumber,
   sendContractWrite,
   type ContractWriteProvider,
 } from "../blockchain/awardRegistry";
@@ -461,6 +462,15 @@ export async function createOrganizerAwardSetup(
     throw new Error("SET_RECIPIENTS_FAILED");
   }
 
+  const createBlockNumber = await readTransactionReceiptBlockNumber(
+    provider,
+    createTxHash,
+  );
+  const setRecipientsBlockNumber = await readTransactionReceiptBlockNumber(
+    provider,
+    setRecipientsTxHash,
+  );
+
   await api.patch<
     UpdatedAwardResponse,
     {
@@ -480,11 +490,13 @@ export async function createOrganizerAwardSetup(
       transactionType: string;
       walletAddress: string;
       txHash: string;
+      blockNumber: number | null;
     }
   >(`/awards/${encodeURIComponent(award.award.id)}/transactions`, {
     transactionType: "AwardRegistered",
     walletAddress: from,
     txHash: createTxHash,
+    blockNumber: createBlockNumber,
   });
 
   await api.post<
@@ -493,11 +505,13 @@ export async function createOrganizerAwardSetup(
       transactionType: string;
       walletAddress: string;
       txHash: string;
+      blockNumber: number | null;
     }
   >(`/awards/${encodeURIComponent(award.award.id)}/transactions`, {
     transactionType: "RecipientsSet",
     walletAddress: from,
     txHash: setRecipientsTxHash,
+    blockNumber: setRecipientsBlockNumber,
   });
 
   return {

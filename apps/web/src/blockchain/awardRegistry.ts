@@ -24,6 +24,10 @@ export type ContractTransactionRequest = {
   data: Hex;
 };
 
+type TransactionReceiptResponse = {
+  blockNumber?: string | number | null;
+} | null;
+
 type ContractAwardInput = {
   from: string;
   registryAddress: string;
@@ -157,6 +161,22 @@ export async function sendContractWrite(
   });
 }
 
+export async function readTransactionReceiptBlockNumber(
+  provider: ContractWriteProvider,
+  txHash: string
+): Promise<number | null> {
+  try {
+    const receipt = await provider.request<TransactionReceiptResponse>({
+      method: "eth_getTransactionReceipt",
+      params: [txHash]
+    });
+
+    return parseReceiptBlockNumber(receipt?.blockNumber);
+  } catch {
+    return null;
+  }
+}
+
 function buildRegistryRequest(
   input: ContractAwardInput,
   call: RegistryCall
@@ -185,6 +205,24 @@ function parseAmount(value: string): bigint {
   }
 
   return BigInt(value);
+}
+
+function parseReceiptBlockNumber(value: string | number | null | undefined): number | null {
+  if (typeof value === "number") {
+    return Number.isSafeInteger(value) && value >= 0 ? value : null;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  if (/^0x[0-9a-fA-F]+$/.test(value)) {
+    const parsed = Number.parseInt(value.slice(2), 16);
+    return Number.isSafeInteger(parsed) ? parsed : null;
+  }
+
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
 }
 
 function parseUnixSeconds(value: string, name: string): bigint {

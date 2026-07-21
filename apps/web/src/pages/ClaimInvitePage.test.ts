@@ -198,6 +198,11 @@ const provider: ContractWriteProvider = {
     params?: unknown[] | Record<string, unknown>;
   }) {
     providerRequests.push({ method, params });
+
+    if (method === "eth_getTransactionReceipt") {
+      return { blockNumber: "0x1e241" } as TResponse;
+    }
+
     return "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" as TResponse;
   },
 };
@@ -279,6 +284,7 @@ if (
       walletAddress: "0x3333333333333333333333333333333333333333",
       txHash:
         "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      blockNumber: 123457,
     },
   })
 ) {

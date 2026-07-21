@@ -9,6 +9,7 @@ import type {
 } from "./AwardDetailPage";
 import {
   buildClaimAwardRequest,
+  readTransactionReceiptBlockNumber,
   sendContractWrite,
   type ContractWriteProvider,
 } from "../blockchain/awardRegistry";
@@ -205,6 +206,7 @@ export async function executeClaimInviteAction({
       awardId: contractAwardId,
     }),
   );
+  const blockNumber = await readTransactionReceiptBlockNumber(provider, txHash);
 
   const claimed = await api.post<
     ClaimedAwardMemberResponse,
@@ -219,11 +221,13 @@ export async function executeClaimInviteAction({
       transactionType: string;
       walletAddress: string;
       txHash: string;
+      blockNumber: number | null;
     }
   >(`/awards/${encodeURIComponent(awardId)}/transactions`, {
     transactionType: "AwardClaimed",
     walletAddress: from,
     txHash,
+    blockNumber,
   });
 
   return { txHash: claimed.member.claimTxHash };

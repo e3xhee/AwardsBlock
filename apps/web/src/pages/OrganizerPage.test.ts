@@ -157,6 +157,8 @@ const txHashes = [
   "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
 ];
 const providerRequests: Array<{ method: string; params?: unknown }> = [];
+let sentTransactionCount = 0;
+let receiptRequestCount = 0;
 const provider: ContractWriteProvider = {
   async request<TResponse = unknown>({
     method,
@@ -166,7 +168,14 @@ const provider: ContractWriteProvider = {
     params?: unknown[] | Record<string, unknown>;
   }) {
     providerRequests.push({ method, params });
-    return txHashes[providerRequests.length - 1] as TResponse;
+
+    if (method === "eth_getTransactionReceipt") {
+      const blockNumber = receiptRequestCount === 0 ? "0x1e240" : "0x1e241";
+      receiptRequestCount += 1;
+      return { blockNumber } as TResponse;
+    }
+
+    return txHashes[sentTransactionCount++] as TResponse;
   },
 };
 
@@ -237,7 +246,11 @@ if (!steps.includes("수령자 배정 등록")) {
   throw new Error("Expected set recipients step");
 }
 
-if (providerRequests.length !== 2) {
+const walletRequests = providerRequests.filter(
+  (request) => request.method === "eth_sendTransaction",
+);
+
+if (walletRequests.length !== 2) {
   throw new Error("Expected createAward and setRecipients wallet requests");
 }
 
@@ -275,6 +288,7 @@ if (
       transactionType: "AwardRegistered",
       walletAddress: "0x0123456789abcdef0123456789abcdef01234567",
       txHash: txHashes[0],
+      blockNumber: 123456,
     },
   })
 ) {
@@ -289,6 +303,7 @@ if (
       transactionType: "RecipientsSet",
       walletAddress: "0x0123456789abcdef0123456789abcdef01234567",
       txHash: txHashes[1],
+      blockNumber: 123457,
     },
   })
 ) {

@@ -58,6 +58,11 @@ const provider: ContractWriteProvider = {
     params?: unknown[] | Record<string, unknown>;
   }) {
     providerRequests.push({ method, params });
+
+    if (method === "eth_getTransactionReceipt") {
+      return { blockNumber: "0x1e240" } as TResponse;
+    }
+
     return "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" as TResponse;
   }
 };
@@ -101,7 +106,8 @@ if (
   JSON.stringify({
     transactionType: "AwardFunded",
     walletAddress: "0x0123456789abcdef0123456789abcdef01234567",
-    txHash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    txHash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    blockNumber: 123456
   })
 ) {
   throw new Error("Expected fund transaction record payload");

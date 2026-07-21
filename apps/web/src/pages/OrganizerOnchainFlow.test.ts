@@ -65,6 +65,7 @@ type Operation =
 
 const operations: Operation[] = [];
 const txHashes = [createTxHash, setRecipientsTxHash];
+let receiptRequestCount = 0;
 
 const provider: ContractWriteProvider = {
   async request<TResponse = unknown>({
@@ -74,6 +75,12 @@ const provider: ContractWriteProvider = {
     method: string;
     params?: unknown[] | Record<string, unknown>;
   }) {
+    if (method === "eth_getTransactionReceipt") {
+      const blockNumber = receiptRequestCount === 0 ? "0x1e240" : "0x1e241";
+      receiptRequestCount += 1;
+      return { blockNumber } as TResponse;
+    }
+
     if (method !== "eth_sendTransaction" || !Array.isArray(params)) {
       throw new Error("Expected eth_sendTransaction wallet request");
     }
@@ -262,6 +269,7 @@ if (
       transactionType: "AwardRegistered",
       walletAddress: organizer,
       txHash: createTxHash,
+      blockNumber: 123456,
     },
   })
 ) {
@@ -279,6 +287,7 @@ if (
       transactionType: "RecipientsSet",
       walletAddress: organizer,
       txHash: setRecipientsTxHash,
+      blockNumber: 123457,
     },
   })
 ) {
