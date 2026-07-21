@@ -32,10 +32,10 @@ const response: AwardBlockDetailResponse = {
       reason: "The team delivered the clearest user-facing award flow.",
       judgingSummary: "Strong product thinking and complete demo.",
       status: "Claiming",
-      rewardTokenSymbol: "MNT",
+      rewardTokenSymbol: "mUSDC",
       rewardTokenAddress: "0x2222222222222222222222222222222222222222",
-      rewardTokenDecimals: 18,
-      totalReward: "1000000000000000000",
+      rewardTokenDecimals: 6,
+      totalReward: "1000000",
       claimStart: "2026-08-02T00:00:00.000Z",
       claimEnd: "2026-09-01T00:00:00.000Z",
       metadataUri: "ipfs://awardblock/best-product",
@@ -50,7 +50,7 @@ const response: AwardBlockDetailResponse = {
         id: "member-1",
         displayName: "Ada Lee",
         walletAddress: "0x3333333333333333333333333333333333333333",
-        allocation: "500000000000000000",
+        allocation: "500000",
         inviteStatus: "Claimed",
         walletConnectedAt: "2026-08-03T00:00:00.000Z",
         claimedAt: "2026-08-04T00:00:00.000Z",
@@ -60,7 +60,7 @@ const response: AwardBlockDetailResponse = {
         id: "member-2",
         displayName: "Grace Park",
         walletAddress: null,
-        allocation: "500000000000000000",
+        allocation: "500000",
         inviteStatus: "Pending",
         walletConnectedAt: null,
         claimedAt: null,
@@ -100,7 +100,7 @@ if (viewModel.awardTitle !== "1st - Best Product") {
   throw new Error("Expected ranked award title");
 }
 
-if (viewModel.rewardLabel !== "1 MNT") {
+if (viewModel.rewardLabel !== "1 mUSDC") {
   throw new Error("Expected formatted total reward");
 }
 
@@ -120,11 +120,11 @@ if (viewModel.onchainAward.contractAwardId !== "contract-award-1") {
   throw new Error("Expected on-chain award contract ID");
 }
 
-if (viewModel.onchainAward.totalReward !== "1000000000000000000") {
+if (viewModel.onchainAward.totalReward !== "1000000") {
   throw new Error("Expected on-chain award reward amount");
 }
 
-if (viewModel.members[0]?.allocationLabel !== "0.5 MNT") {
+if (viewModel.members[0]?.allocationLabel !== "0.5 mUSDC") {
   throw new Error("Expected formatted member allocation");
 }
 

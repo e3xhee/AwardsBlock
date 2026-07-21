@@ -54,9 +54,9 @@ const awardsResponse: ProjectAwardListResponse = {
       reason: "The team delivered the clearest user-facing award flow.",
       judgingSummary: "Strong product thinking and complete demo.",
       rewardTokenAddress: "0x2222222222222222222222222222222222222222",
-      rewardTokenSymbol: "MNT",
-      rewardTokenDecimals: 18,
-      totalReward: "1000000000000000000",
+      rewardTokenSymbol: "mUSDC",
+      rewardTokenDecimals: 6,
+      totalReward: "1000000",
       claimStart: "2026-08-02T00:00:00.000Z",
       claimEnd: "2026-09-01T00:00:00.000Z",
       metadataUri: "ipfs://awardblock/best-product",
@@ -95,7 +95,7 @@ if (viewModel.awards[0]?.title !== "1st - Best Product") {
   throw new Error("Expected ranked award title");
 }
 
-if (viewModel.awards[0]?.rewardLabel !== "1 MNT") {
+if (viewModel.awards[0]?.rewardLabel !== "1 mUSDC") {
   throw new Error("Expected formatted award reward");
 }
 

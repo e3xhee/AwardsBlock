@@ -12,7 +12,7 @@ const profile: WalletProfileResponse["profile"] = {
       member: {
         id: "member-1",
         displayName: "Ada Lee",
-        allocation: "600000000000000000",
+        allocation: "600000",
         inviteStatus: "Claimed",
         walletConnectedAt: "2026-08-03T00:00:00.000Z",
         claimedAt: "2026-08-04T00:00:00.000Z",
@@ -22,9 +22,9 @@ const profile: WalletProfileResponse["profile"] = {
         id: "award-1",
         title: "Best Product",
         rank: "1st",
-        rewardTokenSymbol: "MNT",
-        rewardTokenDecimals: 18,
-        totalReward: "1000000000000000000"
+        rewardTokenSymbol: "mUSDC",
+        rewardTokenDecimals: 6,
+        totalReward: "1000000"
       },
       project: {
         id: "project-1",
@@ -53,7 +53,7 @@ if (viewModel.walletLabel !== "0x1111...1111") {
   throw new Error("Expected shortened wallet label");
 }
 
-if (viewModel.awards[0]?.rewardLabel !== "0.6 MNT") {
+if (viewModel.awards[0]?.rewardLabel !== "0.6 mUSDC") {
   throw new Error("Expected formatted allocation label");
 }
 

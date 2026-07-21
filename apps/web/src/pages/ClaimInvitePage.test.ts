@@ -19,7 +19,7 @@ const inviteResponse: ClaimInviteLookupResponse = {
       id: "member-1",
       awardId: "award-1",
       displayName: "Ada Lee",
-      allocation: "600000000000000000",
+      allocation: "600000",
       inviteStatus: "Invited"
     }
   }
@@ -52,10 +52,10 @@ const awardBlock: AwardBlockDetail = {
     reason: "The team delivered the clearest user-facing award flow.",
     judgingSummary: "Strong product thinking and complete demo.",
     status: "Claiming",
-    rewardTokenSymbol: "MNT",
+    rewardTokenSymbol: "mUSDC",
     rewardTokenAddress: "0x2222222222222222222222222222222222222222",
-    rewardTokenDecimals: 18,
-    totalReward: "1000000000000000000",
+    rewardTokenDecimals: 6,
+    totalReward: "1000000",
     claimStart: "2026-08-02T00:00:00.000Z",
     claimEnd: "2026-09-01T00:00:00.000Z",
     metadataUri: "ipfs://awardblock/best-product",
@@ -70,7 +70,7 @@ const awardBlock: AwardBlockDetail = {
       id: "member-1",
       displayName: "Ada Lee",
       walletAddress: null,
-      allocation: "600000000000000000",
+      allocation: "600000",
       inviteStatus: "Invited",
       walletConnectedAt: null,
       claimedAt: null,
@@ -96,7 +96,7 @@ if (invitedViewModel.recipientName !== "Ada Lee") {
   throw new Error("Expected recipient name from invite");
 }
 
-if (invitedViewModel.allocationLabel !== "0.6 MNT") {
+if (invitedViewModel.allocationLabel !== "0.6 mUSDC") {
   throw new Error("Expected formatted allocation");
 }
 

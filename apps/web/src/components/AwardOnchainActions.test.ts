@@ -10,7 +10,7 @@ const award: OnchainAward = {
   id: "award-1",
   contractAwardId: "award-1",
   rewardTokenAddress: "0x2222222222222222222222222222222222222222",
-  totalReward: "1000000000000000000",
+  totalReward: "1000000",
   status: "ReadyToFund"
 };
 

@@ -34,7 +34,7 @@ const approveRequest = buildApproveRewardTokenRequest({
   from: organizer,
   tokenAddress: rewardTokenAddress,
   spenderAddress: registryAddress,
-  amount: "1000000000000000000"
+  amount: "1000000"
 });
 
 if (approveRequest.to !== rewardTokenAddress) {
@@ -50,7 +50,7 @@ if (decodedApprove.functionName !== "approve") {
   throw new Error("Expected approve function call");
 }
 
-if (decodedApprove.args[0] !== registryAddress || decodedApprove.args[1] !== 1000000000000000000n) {
+if (decodedApprove.args[0] !== registryAddress || decodedApprove.args[1] !== 1000000n) {
   throw new Error("Expected approve spender and amount args");
 }
 
@@ -94,7 +94,7 @@ const setRecipientsRequest = buildSetRecipientsRequest({
   from: organizer,
   registryAddress,
   awardId: "award-1",
-  recipients: [{ walletAddress: recipientAddress, allocation: "600000000000000000" }]
+  recipients: [{ walletAddress: recipientAddress, allocation: "600000" }]
 });
 
 const decodedSetRecipients = decodeFunctionData({
@@ -109,7 +109,7 @@ if (decodedSetRecipients.functionName !== "setRecipients") {
 if (
   decodedSetRecipients.args[0] !== contractAwardId ||
   decodedSetRecipients.args[1][0] !== recipientAddress ||
-  decodedSetRecipients.args[2][0] !== 600000000000000000n
+  decodedSetRecipients.args[2][0] !== 600000n
 ) {
   throw new Error("Expected setRecipients encoded recipient allocation");
 }
@@ -118,7 +118,7 @@ const fundRequest = buildFundAwardRequest({
   from: organizer,
   registryAddress,
   awardId: "award-1",
-  amount: "1000000000000000000"
+  amount: "1000000"
 });
 
 if (fundRequest.to !== registryAddress) {
@@ -134,7 +134,7 @@ if (decodedFund.functionName !== "fundAward") {
   throw new Error("Expected fundAward function call");
 }
 
-if (decodedFund.args[0] !== contractAwardId || decodedFund.args[1] !== 1000000000000000000n) {
+if (decodedFund.args[0] !== contractAwardId || decodedFund.args[1] !== 1000000n) {
   throw new Error("Expected fundAward id and amount args");
 }
 

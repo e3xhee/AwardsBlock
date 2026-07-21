@@ -26,9 +26,9 @@ const response: AwardBlockListResponse = {
         title: "Best Product",
         rank: "1st",
         status: "Claiming",
-        rewardTokenSymbol: "MNT",
-        rewardTokenDecimals: 18,
-        totalReward: "1000000000000000000",
+        rewardTokenSymbol: "mUSDC",
+        rewardTokenDecimals: 6,
+        totalReward: "1000000",
         metadataHash: "0xabc123",
         contractAwardId: "contract-award-1"
       },
@@ -47,7 +47,7 @@ if (summaries[0]?.eventName !== "Seoul Demo Day") {
   throw new Error("Expected event name from award block");
 }
 
-if (summaries[0]?.rewardLabel !== "1 MNT") {
+if (summaries[0]?.rewardLabel !== "1 mUSDC") {
   throw new Error("Expected formatted reward label");
 }
 

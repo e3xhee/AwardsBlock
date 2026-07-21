@@ -193,9 +193,9 @@ const defaultDraft: OrganizerAwardDraft = {
   awardReason: "The team delivered the clearest user-facing award flow.",
   judgingSummary: "Strong product thinking and complete demo.",
   rewardTokenAddress: "0x2222222222222222222222222222222222222222",
-  rewardTokenSymbol: "MNT",
-  rewardTokenDecimals: "18",
-  totalReward: "1000000000000000000",
+  rewardTokenSymbol: "mUSDC",
+  rewardTokenDecimals: "6",
+  totalReward: "1000000",
   claimStart: "2026-08-02T00:00:00.000Z",
   claimEnd: "2026-09-01T00:00:00.000Z",
   metadataUri: "ipfs://awardblock/best-product",
@@ -203,7 +203,7 @@ const defaultDraft: OrganizerAwardDraft = {
   recipientName: "Ada Lee",
   recipientEmail: "ada@example.com",
   recipientWalletAddress: "0x3333333333333333333333333333333333333333",
-  recipientAllocation: "600000000000000000",
+  recipientAllocation: "600000",
   inviteExpiresAt: "2026-08-15T00:00:00.000Z"
 };
 
