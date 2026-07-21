@@ -5,6 +5,7 @@ import {
   type OnchainAward,
 } from "../components/AwardOnchainActions";
 import { chainConfig } from "../blockchain/config";
+import { buildTransactionExplorerUrl } from "../utils/explorer";
 import { formatTokenAmount, shortenAddress } from "../utils/format";
 
 export type AwardBlockDetailResponse = {
@@ -440,19 +441,6 @@ function formatTransactionTypeLabel(value: string): string {
   if (value === "AwardClaimed") return "리워드 클레임";
 
   return value;
-}
-
-function buildTransactionExplorerUrl(
-  blockExplorerUrl: string,
-  txHash: string,
-): string | null {
-  const normalizedExplorerUrl = blockExplorerUrl.trim().replace(/\/+$/, "");
-
-  if (!normalizedExplorerUrl) {
-    return null;
-  }
-
-  return `${normalizedExplorerUrl}/tx/${txHash}`;
 }
 
 function sortAwardTransactions(

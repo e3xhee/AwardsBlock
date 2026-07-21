@@ -1,4 +1,6 @@
 import { apiGet } from "../api/client";
+import { chainConfig } from "../blockchain/config";
+import { buildTransactionExplorerUrl } from "../utils/explorer";
 import { formatTokenAmount, shortenAddress } from "../utils/format";
 
 export type WalletProfileResponse = {
@@ -68,9 +70,11 @@ type WalletProfileViewModel = {
     status: string;
     claimedAtLabel: string;
     claimTransactionLabel: string;
+    claimTransactionUrl: string | null;
     claimTransactions: Array<{
       id: string;
       txHashLabel: string;
+      txUrl: string | null;
       blockLabel: string;
       createdAtLabel: string;
     }>;
@@ -78,7 +82,9 @@ type WalletProfileViewModel = {
 };
 
 export function renderProfilePage(walletAddress: string | null = null): string {
-  const addressLabel = walletAddress ? escapeHtml(shortenAddress(walletAddress)) : "지갑 없음";
+  const addressLabel = walletAddress
+    ? escapeHtml(shortenAddress(walletAddress))
+    : "지갑 없음";
 
   return `
     <main class="page-shell profile-page">
@@ -96,7 +102,10 @@ export function renderProfilePage(walletAddress: string | null = null): string {
   `;
 }
 
-export async function mountProfilePage(root: ParentNode, walletAddress: string): Promise<void> {
+export async function mountProfilePage(
+  root: ParentNode,
+  walletAddress: string,
+): Promise<void> {
   const content = root.querySelector<HTMLElement>("#profile-content");
 
   if (!content) return;
@@ -105,22 +114,30 @@ export async function mountProfilePage(root: ParentNode, walletAddress: string):
 
   try {
     const response = await apiGet<WalletProfileResponse>(
-      `/profiles/${encodeURIComponent(walletAddress)}`
+      `/profiles/${encodeURIComponent(walletAddress)}`,
     );
-    content.innerHTML = renderProfileContent(mapProfileToViewModel(response.profile));
+    content.innerHTML = renderProfileContent(
+      mapProfileToViewModel(response.profile),
+    );
   } catch {
     content.innerHTML = renderProfileError();
   }
 }
 
-export function mapProfileToViewModel(profile: WalletProfile): WalletProfileViewModel {
+export function mapProfileToViewModel(
+  profile: WalletProfile,
+  blockExplorerUrl: string = chainConfig.blockExplorerUrl,
+): WalletProfileViewModel {
   return {
     walletAddress: profile.walletAddress,
     walletLabel: shortenAddress(profile.walletAddress),
     stats: [
       { label: "어워드", value: profile.stats.awardCount.toString() },
-      { label: "클레임 완료", value: profile.stats.claimedAwardCount.toString() },
-      { label: "프로젝트", value: profile.stats.projectCount.toString() }
+      {
+        label: "클레임 완료",
+        value: profile.stats.claimedAwardCount.toString(),
+      },
+      { label: "프로젝트", value: profile.stats.projectCount.toString() },
     ],
     awards: profile.awards.map((award) => {
       const claimTransaction = award.claimTransactions[0];
@@ -140,15 +157,25 @@ export function mapProfileToViewModel(profile: WalletProfile): WalletProfileView
         claimTransactionLabel: claimTransaction
           ? shortenAddress(claimTransaction.txHash)
           : formatNullableHash(award.member.claimTxHash),
+        claimTransactionUrl: buildTransactionExplorerUrl(
+          blockExplorerUrl,
+          claimTransaction?.txHash ?? award.member.claimTxHash ?? "",
+        ),
         claimTransactions: award.claimTransactions.map((transaction) => ({
           id: transaction.id,
           txHashLabel: shortenAddress(transaction.txHash),
+          txUrl: buildTransactionExplorerUrl(
+            blockExplorerUrl,
+            transaction.txHash,
+          ),
           blockLabel:
-            transaction.blockNumber === null ? "블록 대기 중" : `#${transaction.blockNumber}`,
-          createdAtLabel: formatDateLabel(transaction.createdAt)
-        }))
+            transaction.blockNumber === null
+              ? "블록 대기 중"
+              : `#${transaction.blockNumber}`,
+          createdAtLabel: formatDateLabel(transaction.createdAt),
+        })),
       };
-    })
+    }),
   };
 }
 
@@ -181,7 +208,9 @@ function renderStat(stat: WalletProfileViewModel["stats"][number]): string {
   `;
 }
 
-function renderProfileAward(award: WalletProfileViewModel["awards"][number]): string {
+function renderProfileAward(
+  award: WalletProfileViewModel["awards"][number],
+): string {
   return `
     <article class="profile-award">
       <header class="profile-award__header">
@@ -196,7 +225,7 @@ function renderProfileAward(award: WalletProfileViewModel["awards"][number]): st
         <div><dt>수신자</dt><dd>${escapeHtml(award.recipientName)}</dd></div>
         <div><dt>리워드</dt><dd>${escapeHtml(award.rewardLabel)}</dd></div>
         <div><dt>클레임일</dt><dd>${escapeHtml(award.claimedAtLabel)}</dd></div>
-        <div><dt>클레임 tx</dt><dd>${escapeHtml(award.claimTransactionLabel)}</dd></div>
+        <div><dt>클레임 tx</dt><dd>${renderProfileTxHash(award.claimTransactionLabel, award.claimTransactionUrl)}</dd></div>
       </dl>
       ${renderClaimTransactions(award.claimTransactions)}
     </article>
@@ -204,7 +233,7 @@ function renderProfileAward(award: WalletProfileViewModel["awards"][number]): st
 }
 
 function renderClaimTransactions(
-  transactions: WalletProfileViewModel["awards"][number]["claimTransactions"]
+  transactions: WalletProfileViewModel["awards"][number]["claimTransactions"],
 ): string {
   if (transactions.length === 0) {
     return "";
@@ -216,15 +245,23 @@ function renderClaimTransactions(
         .map(
           (transaction) => `
             <li>
-              <span>${escapeHtml(transaction.txHashLabel)}</span>
+              ${renderProfileTxHash(transaction.txHashLabel, transaction.txUrl)}
               <strong>${escapeHtml(transaction.blockLabel)}</strong>
               <small>${escapeHtml(transaction.createdAtLabel)}</small>
             </li>
-          `
+          `,
         )
         .join("")}
     </ul>
   `;
+}
+
+function renderProfileTxHash(label: string, txUrl: string | null): string {
+  if (!txUrl) {
+    return `<span>${escapeHtml(label)}</span>`;
+  }
+
+  return `<a class="text-link" href="${escapeHtml(txUrl)}" target="_blank" rel="noreferrer">${escapeHtml(label)}</a>`;
 }
 
 function renderProfileLoading(): string {
@@ -272,7 +309,7 @@ function formatDateLabel(value: string | null): string {
   return new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
     month: "short",
-    day: "2-digit"
+    day: "2-digit",
   }).format(new Date(value));
 }
 

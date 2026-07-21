@@ -4,9 +4,12 @@ import {
   mapClaimInviteToViewModel,
   renderClaimInvitePage,
   type ClaimInviteActionApi,
-  type ClaimInviteLookupResponse
+  type ClaimInviteLookupResponse,
 } from "./ClaimInvitePage";
-import { buildAwardContractId, type ContractWriteProvider } from "../blockchain/awardRegistry";
+import {
+  buildAwardContractId,
+  type ContractWriteProvider,
+} from "../blockchain/awardRegistry";
 
 const inviteResponse: ClaimInviteLookupResponse = {
   invite: {
@@ -20,9 +23,9 @@ const inviteResponse: ClaimInviteLookupResponse = {
       awardId: "award-1",
       displayName: "Ada Lee",
       allocation: "600000",
-      inviteStatus: "Invited"
-    }
-  }
+      inviteStatus: "Invited",
+    },
+  },
 };
 
 const awardBlock: AwardBlockDetail = {
@@ -35,7 +38,7 @@ const awardBlock: AwardBlockDetail = {
     startDate: "2026-08-01T09:00:00.000Z",
     endDate: "2026-08-01T18:00:00.000Z",
     location: "Seoul",
-    officialUrl: "https://awardblock.example/events/seoul-demo-day"
+    officialUrl: "https://awardblock.example/events/seoul-demo-day",
   },
   project: {
     id: "project-1",
@@ -43,7 +46,7 @@ const awardBlock: AwardBlockDetail = {
     tagline: "Verifiable award submissions",
     description: "A project that makes award review traceable.",
     githubUrl: "https://github.com/example/proofboard",
-    demoUrl: "https://proofboard.example"
+    demoUrl: "https://proofboard.example",
   },
   award: {
     id: "award-1",
@@ -63,7 +66,7 @@ const awardBlock: AwardBlockDetail = {
     contractAwardId: "contract-award-1",
     createTxHash: null,
     fundTxHash: null,
-    finalizeTxHash: null
+    finalizeTxHash: null,
   },
   members: [
     {
@@ -74,19 +77,22 @@ const awardBlock: AwardBlockDetail = {
       inviteStatus: "Invited",
       walletConnectedAt: null,
       claimedAt: null,
-      claimTxHash: null
-    }
+      claimTxHash: null,
+    },
   ],
   transactions: [],
   claimStats: {
     recipientCount: 1,
-    claimedCount: 0
+    claimedCount: 0,
   },
   createdAt: "2026-08-01T18:00:00.000Z",
-  updatedAt: "2026-08-01T18:00:00.000Z"
+  updatedAt: "2026-08-01T18:00:00.000Z",
 };
 
-const invitedViewModel = mapClaimInviteToViewModel(inviteResponse.invite, awardBlock);
+const invitedViewModel = mapClaimInviteToViewModel(
+  inviteResponse.invite,
+  awardBlock,
+);
 
 if (invitedViewModel.awardTitle !== "1st - Best Product") {
   throw new Error("Expected ranked award title");
@@ -119,9 +125,9 @@ const connectedAwardBlock: AwardBlockDetail = {
       ...awardBlock.members[0]!,
       walletAddress: "0x3333333333333333333333333333333333333333",
       inviteStatus: "WalletConnected",
-      walletConnectedAt: "2026-08-03T00:00:00.000Z"
-    }
-  ]
+      walletConnectedAt: "2026-08-03T00:00:00.000Z",
+    },
+  ],
 };
 
 const connectedViewModel = mapClaimInviteToViewModel(
@@ -129,10 +135,10 @@ const connectedViewModel = mapClaimInviteToViewModel(
     ...inviteResponse.invite,
     member: {
       ...inviteResponse.invite.member,
-      inviteStatus: "WalletConnected"
-    }
+      inviteStatus: "WalletConnected",
+    },
   },
-  connectedAwardBlock
+  connectedAwardBlock,
 );
 
 if (connectedViewModel.walletLabel !== "0x3333...3333") {
@@ -143,6 +149,41 @@ if (connectedViewModel.canClaim !== true) {
   throw new Error("Expected connected member to be claim-ready");
 }
 
+const claimedAwardBlock: AwardBlockDetail = {
+  ...awardBlock,
+  members: [
+    {
+      ...awardBlock.members[0]!,
+      walletAddress: "0x3333333333333333333333333333333333333333",
+      inviteStatus: "Claimed",
+      walletConnectedAt: "2026-08-03T00:00:00.000Z",
+      claimedAt: "2026-08-04T00:00:00.000Z",
+      claimTxHash:
+        "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    },
+  ],
+};
+
+const claimedViewModel = mapClaimInviteToViewModel(
+  {
+    ...inviteResponse.invite,
+    member: {
+      ...inviteResponse.invite.member,
+      inviteStatus: "Claimed",
+    },
+  },
+  claimedAwardBlock,
+  "",
+  "https://explorer.test",
+);
+
+if (
+  claimedViewModel.claimTxUrl !==
+  "https://explorer.test/tx/0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+) {
+  throw new Error("Expected claimed invite tx to link to explorer");
+}
+
 if (!renderClaimInvitePage("invite-token-1").includes("data-wallet-auth")) {
   throw new Error("Expected claim invite page to render wallet auth controls");
 }
@@ -151,14 +192,14 @@ const providerRequests: Array<{ method: string; params?: unknown }> = [];
 const provider: ContractWriteProvider = {
   async request<TResponse = unknown>({
     method,
-    params
+    params,
   }: {
     method: string;
     params?: unknown[] | Record<string, unknown>;
   }) {
     providerRequests.push({ method, params });
     return "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" as TResponse;
-  }
+  },
 };
 
 const posts: Array<{ path: string; body: unknown }> = [];
@@ -173,8 +214,9 @@ const api: ClaimInviteActionApi = {
           walletAddress: "0x3333333333333333333333333333333333333333",
           inviteStatus: "Claimed",
           claimedAt: "2026-08-04T00:00:00.000Z",
-          claimTxHash: "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
-        }
+          claimTxHash:
+            "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        },
       } as TResponse;
     }
 
@@ -183,7 +225,7 @@ const api: ClaimInviteActionApi = {
     }
 
     throw new Error(`Unexpected POST ${path}`);
-  }
+  },
 };
 
 const claimResult = await executeClaimInviteAction({
@@ -193,10 +235,13 @@ const claimResult = await executeClaimInviteAction({
   from: "0x3333333333333333333333333333333333333333",
   registryAddress: "0x1111111111111111111111111111111111111111",
   provider,
-  api
+  api,
 });
 
-if (claimResult.txHash !== "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc") {
+if (
+  claimResult.txHash !==
+  "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+) {
   throw new Error("Expected on-chain claim transaction hash");
 }
 
@@ -206,7 +251,7 @@ if (providerRequests[0]?.method !== "eth_sendTransaction") {
 
 if (
   !JSON.stringify(providerRequests[0]?.params).includes(
-    buildAwardContractId("contract-award-1").slice(2)
+    buildAwardContractId("contract-award-1").slice(2),
   )
 ) {
   throw new Error("Expected claim request to encode contract award id");
@@ -217,8 +262,9 @@ if (
   JSON.stringify({
     path: "/award-members/member-1/claim",
     body: {
-      claimTxHash: "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
-    }
+      claimTxHash:
+        "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    },
   })
 ) {
   throw new Error("Expected member claim record with wallet tx hash");
@@ -231,8 +277,9 @@ if (
     body: {
       transactionType: "AwardClaimed",
       walletAddress: "0x3333333333333333333333333333333333333333",
-      txHash: "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
-    }
+      txHash:
+        "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    },
   })
 ) {
   throw new Error("Expected AwardClaimed transaction record");

@@ -12,9 +12,10 @@ import {
   sendContractWrite,
   type ContractWriteProvider,
 } from "../blockchain/awardRegistry";
-import { getRegistryConfigStatus } from "../blockchain/config";
+import { chainConfig, getRegistryConfigStatus } from "../blockchain/config";
 import { getBrowserEthereumProvider } from "../auth/walletAuth";
 import { walletState } from "../state/appState";
+import { buildTransactionExplorerUrl } from "../utils/explorer";
 import { formatTokenAmount, shortenAddress } from "../utils/format";
 
 export type ClaimInviteLookupResponse = {
@@ -77,6 +78,7 @@ type ClaimInviteViewModel = {
   canClaim: boolean;
   isClaimed: boolean;
   claimTxLabel: string;
+  claimTxUrl: string | null;
 };
 
 const defaultClaimInviteActionApi: ClaimInviteActionApi = {
@@ -133,6 +135,7 @@ export function mapClaimInviteToViewModel(
   invite: ClaimInviteLookup,
   awardBlock: AwardBlockDetail,
   token = "",
+  blockExplorerUrl: string = chainConfig.blockExplorerUrl,
 ): ClaimInviteViewModel {
   const member =
     awardBlock.members.find((candidate) => candidate.id === invite.member.id) ??
@@ -166,6 +169,10 @@ export function mapClaimInviteToViewModel(
     canClaim: walletAddress !== null && inviteStatus === "WalletConnected",
     isClaimed: inviteStatus === "Claimed" || claimTxHash !== null,
     claimTxLabel: claimTxHash ? shortenAddress(claimTxHash) : "기록 없음",
+    claimTxUrl: buildTransactionExplorerUrl(
+      blockExplorerUrl,
+      claimTxHash ?? "",
+    ),
   };
 }
 
@@ -329,7 +336,7 @@ function renderClaimInviteContent(invite: ClaimInviteViewModel): string {
       ${renderClaimMetric("배정 수량", invite.allocationLabel)}
       ${renderClaimMetric("지갑", invite.walletLabel)}
       ${renderClaimMetric("만료일", invite.expiresAtLabel)}
-      ${renderClaimMetric("클레임 tx", invite.claimTxLabel)}
+      ${renderClaimMetric("클레임 tx", invite.claimTxLabel, invite.claimTxUrl)}
     </div>
     <section class="detail-section">
       <h2>수신자 작업</h2>
@@ -338,13 +345,25 @@ function renderClaimInviteContent(invite: ClaimInviteViewModel): string {
   `;
 }
 
-function renderClaimMetric(label: string, value: string): string {
+function renderClaimMetric(
+  label: string,
+  value: string,
+  txUrl: string | null = null,
+): string {
   return `
     <div class="profile-stat">
       <span>${escapeHtml(label)}</span>
-      <strong>${escapeHtml(value)}</strong>
+      <strong>${renderClaimTxHash(value, txUrl)}</strong>
     </div>
   `;
+}
+
+function renderClaimTxHash(label: string, txUrl: string | null): string {
+  if (!txUrl) {
+    return escapeHtml(label);
+  }
+
+  return `<a class="text-link" href="${escapeHtml(txUrl)}" target="_blank" rel="noreferrer">${escapeHtml(label)}</a>`;
 }
 
 function renderClaimActions(invite: ClaimInviteViewModel): string {
@@ -419,10 +438,15 @@ function renderClaimActionError(message: string): string {
 }
 
 function renderClaimSuccess(claimTxHash: string): string {
+  const claimTxUrl = buildTransactionExplorerUrl(
+    chainConfig.blockExplorerUrl,
+    claimTxHash,
+  );
+
   return `
     <div class="empty-state">
       <p class="eyebrow">클레임 기록 완료</p>
-      <h2>${escapeHtml(shortenAddress(claimTxHash))}</h2>
+      <h2>${renderClaimTxHash(shortenAddress(claimTxHash), claimTxUrl)}</h2>
     </div>
   `;
 }

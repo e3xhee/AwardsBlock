@@ -1,11 +1,15 @@
-import { mapProfileToViewModel, renderProfilePage, type WalletProfileResponse } from "./ProfilePage";
+import {
+  mapProfileToViewModel,
+  renderProfilePage,
+  type WalletProfileResponse,
+} from "./ProfilePage";
 
 const profile: WalletProfileResponse["profile"] = {
   walletAddress: "0x1111111111111111111111111111111111111111",
   stats: {
     awardCount: 1,
     claimedAwardCount: 1,
-    projectCount: 1
+    projectCount: 1,
   },
   awards: [
     {
@@ -16,7 +20,8 @@ const profile: WalletProfileResponse["profile"] = {
         inviteStatus: "Claimed",
         walletConnectedAt: "2026-08-03T00:00:00.000Z",
         claimedAt: "2026-08-04T00:00:00.000Z",
-        claimTxHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        claimTxHash:
+          "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       },
       award: {
         id: "award-1",
@@ -24,30 +29,35 @@ const profile: WalletProfileResponse["profile"] = {
         rank: "1st",
         rewardTokenSymbol: "mUSDC",
         rewardTokenDecimals: 6,
-        totalReward: "1000000"
+        totalReward: "1000000",
       },
       project: {
         id: "project-1",
-        name: "ProofBoard"
+        name: "ProofBoard",
       },
       event: {
         id: "event-1",
-        name: "Seoul Demo Day"
+        name: "Seoul Demo Day",
       },
       claimTransactions: [
         {
           id: "transaction-1",
           transactionType: "AwardClaimed",
-          txHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          txHash:
+            "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           blockNumber: 123456,
-          createdAt: "2026-08-04T00:00:00.000Z"
-        }
-      ]
-    }
-  ]
+          createdAt: "2026-08-04T00:00:00.000Z",
+        },
+      ],
+    },
+  ],
 };
 
 const viewModel = mapProfileToViewModel(profile);
+const explorerViewModel = mapProfileToViewModel(
+  profile,
+  "https://explorer.test",
+);
 
 if (viewModel.walletLabel !== "0x1111...1111") {
   throw new Error("Expected shortened wallet label");
@@ -59,6 +69,15 @@ if (viewModel.awards[0]?.rewardLabel !== "0.6 mUSDC") {
 
 if (viewModel.awards[0]?.claimTransactionLabel !== "0xaaaa...aaaa") {
   throw new Error("Expected shortened claim transaction label");
+}
+
+if (
+  explorerViewModel.awards[0]?.claimTransactionUrl !==
+  "https://explorer.test/tx/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+) {
+  throw new Error(
+    "Expected profile claim transaction summary to link to explorer",
+  );
 }
 
 if (viewModel.stats[0]?.label !== "어워드") {
@@ -75,6 +94,15 @@ if (viewModel.awards[0]?.claimedAtLabel !== "2026년 8월 04일") {
 
 if (viewModel.awards[0]?.claimTransactions[0]?.blockLabel !== "#123456") {
   throw new Error("Expected mined block label");
+}
+
+if (
+  explorerViewModel.awards[0]?.claimTransactions[0]?.txUrl !==
+  "https://explorer.test/tx/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+) {
+  throw new Error(
+    "Expected profile claim transaction item to link to explorer",
+  );
 }
 
 if (!renderProfilePage(profile.walletAddress).includes("지갑 프로필")) {
