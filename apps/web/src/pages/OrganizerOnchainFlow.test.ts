@@ -274,3 +274,134 @@ if (result.createTxHash !== createTxHash) {
 if (result.setRecipientsTxHash !== setRecipientsTxHash) {
   throw new Error("Expected result to expose setRecipients transaction hash");
 }
+
+const failedOperations: Operation[] = [];
+const failingProvider: ContractWriteProvider = {
+  async request<TResponse = unknown>({
+    method,
+    params,
+  }: {
+    method: string;
+    params?: unknown[] | Record<string, unknown>;
+  }) {
+    if (method !== "eth_sendTransaction" || !Array.isArray(params)) {
+      throw new Error("Expected eth_sendTransaction wallet request");
+    }
+
+    failedOperations.push({
+      type: "wallet.tx",
+      request: params[0] as ContractTransactionRequest,
+    });
+
+    const walletRequestCount = failedOperations.filter(
+      (operation) => operation.type === "wallet.tx",
+    ).length;
+
+    if (walletRequestCount === 2) {
+      throw new Error("SET_RECIPIENTS_REJECTED");
+    }
+
+    return createTxHash as TResponse;
+  },
+};
+
+const failingApi = {
+  async post<TResponse, TBody = unknown>(path: string, body?: TBody) {
+    failedOperations.push({ type: "api.post", path, body });
+
+    if (path === "/events") {
+      return { event: { id: "event-1", name: draft.eventName } } as TResponse;
+    }
+
+    if (path === "/events/event-1/projects") {
+      return {
+        project: { id: "project-1", name: draft.projectName },
+      } as TResponse;
+    }
+
+    if (path === "/projects/project-1/awards") {
+      return { award: { id: "award-1", title: draft.awardTitle } } as TResponse;
+    }
+
+    if (path === "/awards/award-1/members") {
+      return {
+        member: {
+          id: "member-1",
+          displayName: draft.recipientName,
+          walletAddress: recipient,
+          allocation: draft.recipientAllocation,
+        },
+      } as TResponse;
+    }
+
+    if (path === "/award-members/member-1/claim-invites") {
+      return {
+        invite: { id: "invite-1", token: "invite-token-1" },
+      } as TResponse;
+    }
+
+    throw new Error(`Unexpected POST ${path}`);
+  },
+  async patch<TResponse, TBody = unknown>(path: string, body?: TBody) {
+    failedOperations.push({ type: "api.patch", path, body });
+    return { award: { id: "award-1" } } as TResponse;
+  },
+};
+
+let setRecipientsFailure: Error | null = null;
+
+try {
+  await createOrganizerAwardSetup(draft, () => undefined, {
+    api: failingApi,
+    provider: failingProvider,
+    from: organizer,
+    registryAddress,
+  });
+} catch (error) {
+  setRecipientsFailure = error as Error;
+}
+
+if (setRecipientsFailure?.message !== "SET_RECIPIENTS_REJECTED") {
+  throw new Error("Expected setRecipients failure to reject organizer setup");
+}
+
+const failedOperationLabels = failedOperations.map((operation) =>
+  operation.type === "wallet.tx"
+    ? decodeFunctionData({
+        abi: awardRegistryAbi,
+        data: operation.request.data,
+      }).functionName
+    : `${operation.type}:${operation.path}`,
+);
+
+if (
+  JSON.stringify(failedOperationLabels) !==
+  JSON.stringify([
+    "api.post:/events",
+    "api.post:/events/event-1/projects",
+    "api.post:/projects/project-1/awards",
+    "api.post:/awards/award-1/members",
+    "api.post:/award-members/member-1/claim-invites",
+    "createAward",
+    "setRecipients",
+  ])
+) {
+  throw new Error(
+    `Expected failed organizer setup to stop before DB on-chain writes, got ${JSON.stringify(
+      failedOperationLabels,
+    )}`,
+  );
+}
+
+if (
+  failedOperations.some(
+    (operation) =>
+      operation.type === "api.patch" ||
+      (operation.type === "api.post" &&
+        operation.path === "/awards/award-1/transactions"),
+  )
+) {
+  throw new Error(
+    "Expected setRecipients failure to skip award patch and transaction record",
+  );
+}
