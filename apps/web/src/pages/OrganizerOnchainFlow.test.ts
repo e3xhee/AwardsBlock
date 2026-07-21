@@ -163,6 +163,7 @@ const expectedOperationLabels = [
   "setRecipients",
   "api.patch:/awards/award-1",
   "api.post:/awards/award-1/transactions",
+  "api.post:/awards/award-1/transactions",
 ];
 
 if (
@@ -250,10 +251,10 @@ if (
   );
 }
 
-const transactionRecord = operations[8];
+const createAwardTransactionRecord = operations[8];
 
 if (
-  JSON.stringify(transactionRecord) !==
+  JSON.stringify(createAwardTransactionRecord) !==
   JSON.stringify({
     type: "api.post",
     path: "/awards/award-1/transactions",
@@ -264,7 +265,26 @@ if (
     },
   })
 ) {
-  throw new Error("Expected transaction record after award patch");
+  throw new Error("Expected createAward transaction record after award patch");
+}
+
+const setRecipientsTransactionRecord = operations[9];
+
+if (
+  JSON.stringify(setRecipientsTransactionRecord) !==
+  JSON.stringify({
+    type: "api.post",
+    path: "/awards/award-1/transactions",
+    body: {
+      transactionType: "RecipientsSet",
+      walletAddress: organizer,
+      txHash: setRecipientsTxHash,
+    },
+  })
+) {
+  throw new Error(
+    "Expected setRecipients transaction record after award patch",
+  );
 }
 
 if (result.createTxHash !== createTxHash) {

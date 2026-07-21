@@ -9,6 +9,7 @@ import { nowIso } from "../utils/time.js";
 
 const transactionTypes = [
   "AwardRegistered",
+  "RecipientsSet",
   "AwardFunded",
   "AwardFinalized",
   "AwardClaimed"

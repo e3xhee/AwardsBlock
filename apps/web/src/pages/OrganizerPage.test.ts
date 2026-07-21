@@ -281,6 +281,20 @@ if (
   throw new Error("Expected AwardRegistered transaction record");
 }
 
+if (
+  JSON.stringify(postCalls[6]) !==
+  JSON.stringify({
+    path: "/awards/award-1/transactions",
+    body: {
+      transactionType: "RecipientsSet",
+      walletAddress: "0x0123456789abcdef0123456789abcdef01234567",
+      txHash: txHashes[1],
+    },
+  })
+) {
+  throw new Error("Expected RecipientsSet transaction record");
+}
+
 const successHtml = renderOrganizerSuccess(result);
 
 if (!successHtml.includes("펀딩 진행하기")) {

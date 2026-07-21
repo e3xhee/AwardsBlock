@@ -56,6 +56,12 @@ const transactionInput = {
   blockNumber: 123456
 };
 
+const recipientsSetTransactionInput = {
+  transactionType: "RecipientsSet",
+  walletAddress: organizerAccount.address,
+  txHash: "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+};
+
 type NonceResponse = {
   nonce: {
     nonce: string;
@@ -275,5 +281,24 @@ test("transaction record creation validates input and award existence", async ()
       body: JSON.stringify(transactionInput)
     });
     assert.equal(missingAwardResponse.status, 404);
+  });
+});
+
+test("organizers can record recipient assignment transactions", async () => {
+  await withApi(async (baseUrl) => {
+    const organizerCookie = await signIn(baseUrl, organizerAccount);
+    const eventId = await createEvent(baseUrl, organizerCookie);
+    const projectId = await createProject(baseUrl, organizerCookie, eventId);
+    const awardId = await createAward(baseUrl, organizerCookie, projectId);
+
+    const createResponse = await fetch(`${baseUrl}/awards/${awardId}/transactions`, {
+      method: "POST",
+      headers: { ...jsonHeaders, cookie: organizerCookie },
+      body: JSON.stringify(recipientsSetTransactionInput)
+    });
+    assert.equal(createResponse.status, 201);
+    const created = await readJson<TransactionRecordResponse>(createResponse);
+    assert.equal(created.transaction.transactionType, "RecipientsSet");
+    assert.equal(created.transaction.txHash, recipientsSetTransactionInput.txHash);
   });
 });

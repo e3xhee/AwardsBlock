@@ -487,6 +487,19 @@ export async function createOrganizerAwardSetup(
     txHash: createTxHash,
   });
 
+  await api.post<
+    CreatedTransactionResponse,
+    {
+      transactionType: string;
+      walletAddress: string;
+      txHash: string;
+    }
+  >(`/awards/${encodeURIComponent(award.award.id)}/transactions`, {
+    transactionType: "RecipientsSet",
+    walletAddress: from,
+    txHash: setRecipientsTxHash,
+  });
+
   return {
     eventId: event.event.id,
     projectId: project.project.id,
