@@ -12,6 +12,8 @@
     "seed:demo": "corepack pnpm --filter @awardblock/api seed:demo",
     "format": "prettier --write .",
     "contracts:build": "corepack pnpm --filter @awardblock/contracts build",
+    "contracts:deploy": "corepack pnpm --filter @awardblock/contracts run deploy",
+    "contracts:deploy:simulate": "corepack pnpm --filter @awardblock/contracts run deploy:simulate",
     "contracts:sync-env": "corepack pnpm --filter @awardblock/contracts sync:env",
     "contracts:test": "corepack pnpm --filter @awardblock/contracts test"
   },

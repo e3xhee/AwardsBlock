@@ -10,9 +10,26 @@ corepack pnpm contracts:build
 
 ## 2. Deploy contracts
 
-Deploy `packages/contracts/script/Deploy.s.sol` with your preferred Foundry flow.
+You can first verify the deploy script without broadcasting:
 
-After deployment, sync the addresses into the app environment:
+```bash
+corepack pnpm contracts:deploy:simulate
+```
+
+For a real deployment, run a local RPC such as Anvil or use a testnet RPC, then set `RPC_URL` and `PRIVATE_KEY` in `.env.local`.
+
+```bash
+RPC_URL=http://127.0.0.1:8545
+PRIVATE_KEY=0x...
+```
+
+Then deploy and sync app env files:
+
+```bash
+corepack pnpm contracts:deploy
+```
+
+If contracts are already deployed, sync the addresses directly:
 
 ```bash
 corepack pnpm contracts:sync-env -- --registry 0xRegistryAddress --mock-usdc 0xMockUsdcAddress
