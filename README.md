@@ -74,6 +74,12 @@ copy .env.example .env.local
 corepack pnpm contracts:sync-env -- --registry 0x... --mock-usdc 0x... --block-explorer-url https://explorer.sepolia.mantle.xyz
 ```
 
+E2E 환경 점검:
+
+```bash
+corepack pnpm check:e2e
+```
+
 로컬 Anvil처럼 블록 익스플로러가 없는 환경에서는 `--block-explorer-url`을 생략하면 트랜잭션 해시가 일반 텍스트로 표시됩니다.
 
 ## 데모 데이터

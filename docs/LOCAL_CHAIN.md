@@ -48,6 +48,12 @@ The command writes:
 
 The web app reads `VITE_REGISTRY_CONTRACT_ADDRESS` for registry writes and `VITE_MOCK_USDC_ADDRESS` as the organizer form default reward token address.
 
+Before running the browser flow, check that the root and web env files are synced:
+
+```bash
+corepack pnpm check:e2e
+```
+
 ## 3. Run the local demo
 
 ```bash

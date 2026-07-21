@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "corepack pnpm --parallel --filter @awardblock/web --filter @awardblock/api dev",
     "build": "corepack pnpm --filter @awardblock/shared build && corepack pnpm --filter @awardblock/api --filter @awardblock/web build",
-    "test": "corepack pnpm --filter @awardblock/shared build && corepack pnpm --filter @awardblock/shared --filter @awardblock/api --filter @awardblock/web test",
+    "test": "node --test scripts/check-e2e-readiness.test.mjs && corepack pnpm --filter @awardblock/shared build && corepack pnpm --filter @awardblock/shared --filter @awardblock/api --filter @awardblock/web test",
     "lint": "corepack pnpm --filter @awardblock/shared build && corepack pnpm --filter @awardblock/shared --filter @awardblock/api --filter @awardblock/web lint",
     "seed:demo": "corepack pnpm --filter @awardblock/api seed:demo",
     "format": "prettier --write .",
@@ -15,7 +15,8 @@
     "contracts:deploy": "corepack pnpm --filter @awardblock/contracts run deploy",
     "contracts:deploy:simulate": "corepack pnpm --filter @awardblock/contracts run deploy:simulate",
     "contracts:sync-env": "corepack pnpm --filter @awardblock/contracts sync:env",
-    "contracts:test": "corepack pnpm --filter @awardblock/contracts test"
+    "contracts:test": "corepack pnpm --filter @awardblock/contracts test",
+    "check:e2e": "node scripts/check-e2e-readiness.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

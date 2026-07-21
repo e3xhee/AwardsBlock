@@ -46,6 +46,12 @@ corepack pnpm contracts:deploy
 - `REGISTRY_CONTRACT_ADDRESS`
 - `MOCK_USDC_ADDRESS`
 
+E2E 환경 점검:
+
+```bash
+corepack pnpm check:e2e
+```
+
 ## 3. 앱 실행
 
 데모 데이터를 넣고 웹/API 서버를 실행한다.
