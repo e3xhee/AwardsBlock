@@ -119,6 +119,8 @@ corepack pnpm contracts:build
 corepack pnpm contracts:test
 ```
 
+MVP 전체 플로우를 실제 지갑으로 점검할 때는 [MVP E2E 체크리스트](docs/MVP_E2E_CHECKLIST.md)를 따라가면 됩니다.
+
 ## 보안 메모
 
 - 개인키와 seed phrase는 저장소에 포함하지 않습니다.
