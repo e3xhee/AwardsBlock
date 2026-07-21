@@ -4,13 +4,17 @@ import {
   buildCreateAwardRequest,
   buildSetRecipientsRequest,
   sendContractWrite,
-  type ContractWriteProvider
+  type ContractWriteProvider,
 } from "../blockchain/awardRegistry";
-import { chainConfig } from "../blockchain/config";
+import {
+  chainConfig,
+  getOnchainConfigStatus,
+  getRegistryConfigStatus,
+} from "../blockchain/config";
 import { getBrowserEthereumProvider } from "../auth/walletAuth";
 import {
   mountWalletConnectButton,
-  renderWalletConnectButton
+  renderWalletConnectButton,
 } from "../components/WalletConnectButton";
 import { walletState } from "../state/appState";
 
@@ -158,8 +162,14 @@ type CreatedTransactionResponse = {
 };
 
 type OrganizerAwardSetupApi = {
-  post<TResponse, TBody = unknown>(path: string, body?: TBody): Promise<TResponse>;
-  patch<TResponse, TBody = unknown>(path: string, body?: TBody): Promise<TResponse>;
+  post<TResponse, TBody = unknown>(
+    path: string,
+    body?: TBody,
+  ): Promise<TResponse>;
+  patch<TResponse, TBody = unknown>(
+    path: string,
+    body?: TBody,
+  ): Promise<TResponse>;
 };
 
 type OrganizerAwardSetupDependencies = {
@@ -171,7 +181,7 @@ type OrganizerAwardSetupDependencies = {
 
 const defaultApi: OrganizerAwardSetupApi = {
   post: apiPost,
-  patch: apiPatch
+  patch: apiPatch,
 };
 
 const fallbackMockUsdcAddress = "0x2222222222222222222222222222222222222222";
@@ -186,7 +196,8 @@ const baseDefaultDraft: OrganizerAwardDraft = {
   projectName: "ProofBoard",
   projectTagline: "Verifiable award submissions",
   projectDescription: "A project that makes award review traceable.",
-  projectProblem: "Judges need consistent context before assigning prize rewards.",
+  projectProblem:
+    "Judges need consistent context before assigning prize rewards.",
   projectSolution: "Teams submit canonical award proof.",
   projectGithubUrl: "https://github.com/example/proofboard",
   projectDemoUrl: "https://proofboard.example",
@@ -206,18 +217,19 @@ const baseDefaultDraft: OrganizerAwardDraft = {
   recipientEmail: "ada@example.com",
   recipientWalletAddress: "0x3333333333333333333333333333333333333333",
   recipientAllocation: "600000",
-  inviteExpiresAt: "2026-08-15T00:00:00.000Z"
+  inviteExpiresAt: "2026-08-15T00:00:00.000Z",
 };
 
 export function getDefaultOrganizerAwardDraft(): OrganizerAwardDraft {
   return {
     ...baseDefaultDraft,
-    rewardTokenAddress: chainConfig.mockUsdcAddress || fallbackMockUsdcAddress
+    rewardTokenAddress: chainConfig.mockUsdcAddress || fallbackMockUsdcAddress,
   };
 }
 
 export function renderOrganizerPage(): string {
   const defaultDraft = getDefaultOrganizerAwardDraft();
+  const onchainConfigStatus = getOnchainConfigStatus();
 
   return `
     <main class="page-shell organizer-page">
@@ -241,9 +253,14 @@ export function renderOrganizerPage(): string {
           <button class="button" type="submit">어워드 설정 생성</button>
         </form>
         <aside id="organizer-result" class="organizer-result" aria-live="polite">
-          <p class="eyebrow">준비됨</p>
+          <p class="eyebrow">${onchainConfigStatus.ready ? "온체인 준비됨" : "온체인 설정 필요"}</p>
           <h2>주최자 지갑 세션 대기 중</h2>
-          <p>주최자 지갑을 연결한 뒤 제출하세요. 온체인 등록에는 컨트랙트 주소 설정도 필요합니다.</p>
+          <p>${escapeHtml(onchainConfigStatus.message)} 주최자 지갑을 연결한 뒤 제출하세요.</p>
+          <dl class="organizer-result-list">
+            <div><dt>Chain ID</dt><dd>${escapeHtml(String(onchainConfigStatus.chainId))}</dd></div>
+            <div><dt>Registry</dt><dd>${escapeHtml(onchainConfigStatus.registryAddress || "미설정")}</dd></div>
+            <div><dt>mUSDC</dt><dd>${escapeHtml(onchainConfigStatus.mockUsdcAddress || "미설정")}</dd></div>
+          </dl>
         </aside>
       </section>
     </main>
@@ -260,7 +277,9 @@ export function mountOrganizerPage(root: ParentNode): void {
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const submitButton = form.querySelector<HTMLButtonElement>("button[type='submit']");
+    const submitButton = form.querySelector<HTMLButtonElement>(
+      "button[type='submit']",
+    );
     if (submitButton) {
       submitButton.disabled = true;
       submitButton.textContent = "생성 중...";
@@ -269,9 +288,12 @@ export function mountOrganizerPage(root: ParentNode): void {
     result.innerHTML = renderOrganizerProgress("이벤트 생성");
 
     try {
-      const submission = await createOrganizerAwardSetup(readOrganizerAwardDraft(form), (step) => {
-        result.innerHTML = renderOrganizerProgress(step);
-      });
+      const submission = await createOrganizerAwardSetup(
+        readOrganizerAwardDraft(form),
+        (step) => {
+          result.innerHTML = renderOrganizerProgress(step);
+        },
+      );
       result.innerHTML = renderOrganizerSuccess(submission);
       form.reset();
     } catch {
@@ -286,7 +308,7 @@ export function mountOrganizerPage(root: ParentNode): void {
 }
 
 export function buildOrganizerAwardPayloads(
-  draft: OrganizerAwardDraft
+  draft: OrganizerAwardDraft,
 ): OrganizerAwardPayloads {
   return {
     event: {
@@ -295,7 +317,7 @@ export function buildOrganizerAwardPayloads(
       startDate: requiredText(draft.eventStartDate),
       endDate: requiredText(draft.eventEndDate),
       location: nullableText(draft.eventLocation),
-      officialUrl: nullableText(draft.eventOfficialUrl)
+      officialUrl: nullableText(draft.eventOfficialUrl),
     },
     project: {
       name: requiredText(draft.projectName),
@@ -304,7 +326,7 @@ export function buildOrganizerAwardPayloads(
       problem: nullableText(draft.projectProblem),
       solution: nullableText(draft.projectSolution),
       githubUrl: nullableText(draft.projectGithubUrl),
-      demoUrl: nullableText(draft.projectDemoUrl)
+      demoUrl: nullableText(draft.projectDemoUrl),
     },
     award: {
       title: requiredText(draft.awardTitle),
@@ -319,65 +341,73 @@ export function buildOrganizerAwardPayloads(
       claimEnd: requiredText(draft.claimEnd),
       metadataUri: nullableText(draft.metadataUri),
       metadataHash: nullableText(draft.metadataHash),
-      status: "Draft"
+      status: "Draft",
     },
     member: {
       displayName: requiredText(draft.recipientName),
       email: nullableText(draft.recipientEmail),
       walletAddress: requiredText(draft.recipientWalletAddress),
       allocation: requiredText(draft.recipientAllocation),
-      inviteStatus: "Pending"
+      inviteStatus: "Pending",
     },
     invite: {
       ...(nullableText(draft.inviteExpiresAt) === null
         ? {}
-        : { expiresAt: requiredText(draft.inviteExpiresAt) })
-    }
+        : { expiresAt: requiredText(draft.inviteExpiresAt) }),
+    },
   };
 }
 
 export async function createOrganizerAwardSetup(
   draft: OrganizerAwardDraft,
   onStep: (step: string) => void,
-  dependencies: OrganizerAwardSetupDependencies = {}
+  dependencies: OrganizerAwardSetupDependencies = {},
 ): Promise<OrganizerSubmissionResult> {
   const api = dependencies.api ?? defaultApi;
   const provider = dependencies.provider ?? getBrowserEthereumProvider();
   const from = dependencies.from ?? walletState.address;
-  const registryAddress = dependencies.registryAddress ?? chainConfig.registryAddress;
+  const registryAddress =
+    dependencies.registryAddress ?? chainConfig.registryAddress;
+  const registryStatus = getRegistryConfigStatus(registryAddress);
 
-  if (!provider || !from || registryAddress === "") {
+  if (!provider || !from || !registryStatus.ready) {
     throw new Error("ONCHAIN_CONTEXT_REQUIRED");
   }
 
   const payloads = buildOrganizerAwardPayloads(draft);
-  const event = await api.post<CreatedEventResponse, OrganizerAwardPayloads["event"]>(
-    "/events",
-    payloads.event
-  );
+  const event = await api.post<
+    CreatedEventResponse,
+    OrganizerAwardPayloads["event"]
+  >("/events", payloads.event);
 
   onStep("프로젝트 생성");
-  const project = await api.post<CreatedProjectResponse, OrganizerAwardPayloads["project"]>(
-    `/events/${encodeURIComponent(event.event.id)}/projects`,
-    payloads.project
-  );
+  const project = await api.post<
+    CreatedProjectResponse,
+    OrganizerAwardPayloads["project"]
+  >(`/events/${encodeURIComponent(event.event.id)}/projects`, payloads.project);
 
   onStep("어워드 초안 생성");
-  const award = await api.post<CreatedAwardResponse, OrganizerAwardPayloads["award"]>(
+  const award = await api.post<
+    CreatedAwardResponse,
+    OrganizerAwardPayloads["award"]
+  >(
     `/projects/${encodeURIComponent(project.project.id)}/awards`,
-    payloads.award
+    payloads.award,
   );
 
   onStep("수령자 추가");
-  const member = await api.post<CreatedMemberResponse, OrganizerAwardPayloads["member"]>(
-    `/awards/${encodeURIComponent(award.award.id)}/members`,
-    payloads.member
-  );
+  const member = await api.post<
+    CreatedMemberResponse,
+    OrganizerAwardPayloads["member"]
+  >(`/awards/${encodeURIComponent(award.award.id)}/members`, payloads.member);
 
   onStep("클레임 초대 생성");
-  const invite = await api.post<CreatedInviteResponse, OrganizerAwardPayloads["invite"]>(
+  const invite = await api.post<
+    CreatedInviteResponse,
+    OrganizerAwardPayloads["invite"]
+  >(
     `/award-members/${encodeURIComponent(member.member.id)}/claim-invites`,
-    payloads.invite
+    payloads.invite,
   );
 
   onStep("온체인 어워드 생성");
@@ -386,7 +416,7 @@ export async function createOrganizerAwardSetup(
     provider,
     buildCreateAwardRequest({
       from,
-      registryAddress,
+      registryAddress: registryStatus.registryAddress,
       awardId: award.award.id,
       eventId: event.event.id,
       projectId: project.project.id,
@@ -394,8 +424,8 @@ export async function createOrganizerAwardSetup(
       metadataHash: payloads.award.metadataHash,
       rewardTokenAddress: payloads.award.rewardTokenAddress,
       claimStart: payloads.award.claimStart,
-      claimEnd: payloads.award.claimEnd
-    })
+      claimEnd: payloads.award.claimEnd,
+    }),
   );
 
   await api.patch<
@@ -406,7 +436,7 @@ export async function createOrganizerAwardSetup(
     }
   >(`/awards/${encodeURIComponent(award.award.id)}`, {
     contractAwardId,
-    createTxHash
+    createTxHash,
   });
 
   await api.post<
@@ -419,7 +449,7 @@ export async function createOrganizerAwardSetup(
   >(`/awards/${encodeURIComponent(award.award.id)}/transactions`, {
     transactionType: "AwardRegistered",
     walletAddress: from,
-    txHash: createTxHash
+    txHash: createTxHash,
   });
 
   onStep("수령자 배정 등록");
@@ -427,15 +457,16 @@ export async function createOrganizerAwardSetup(
     provider,
     buildSetRecipientsRequest({
       from,
-      registryAddress,
+      registryAddress: registryStatus.registryAddress,
       awardId: award.award.id,
       recipients: [
         {
-          walletAddress: member.member.walletAddress ?? payloads.member.walletAddress,
-          allocation: member.member.allocation
-        }
-      ]
-    })
+          walletAddress:
+            member.member.walletAddress ?? payloads.member.walletAddress,
+          allocation: member.member.allocation,
+        },
+      ],
+    }),
   );
 
   await api.patch<
@@ -444,7 +475,7 @@ export async function createOrganizerAwardSetup(
       status: string;
     }
   >(`/awards/${encodeURIComponent(award.award.id)}`, {
-    status: "ReadyToFund"
+    status: "ReadyToFund",
   });
 
   return {
@@ -460,7 +491,7 @@ export async function createOrganizerAwardSetup(
     createTxHash,
     setRecipientsTxHash,
     claimPath: `/claim/${encodeURIComponent(invite.invite.token)}`,
-    awardPath: `/awards/${encodeURIComponent(award.award.id)}`
+    awardPath: `/awards/${encodeURIComponent(award.award.id)}`,
   };
 }
 
@@ -496,7 +527,7 @@ function readOrganizerAwardDraft(form: HTMLFormElement): OrganizerAwardDraft {
     recipientEmail: readFormString(formData, "recipientEmail"),
     recipientWalletAddress: readFormString(formData, "recipientWalletAddress"),
     recipientAllocation: readFormString(formData, "recipientAllocation"),
-    inviteExpiresAt: readFormString(formData, "inviteExpiresAt")
+    inviteExpiresAt: readFormString(formData, "inviteExpiresAt"),
   };
 }
 
@@ -582,7 +613,12 @@ function renderRecipientFields(draft: OrganizerAwardDraft): string {
   `;
 }
 
-function renderInput(label: string, name: keyof OrganizerAwardDraft, value: string, required = false): string {
+function renderInput(
+  label: string,
+  name: keyof OrganizerAwardDraft,
+  value: string,
+  required = false,
+): string {
   return `
     <label>
       <span>${escapeHtml(label)}</span>
@@ -595,7 +631,7 @@ function renderTextarea(
   label: string,
   name: keyof OrganizerAwardDraft,
   value: string,
-  required = false
+  required = false,
 ): string {
   return `
     <label>
@@ -613,7 +649,9 @@ function renderOrganizerProgress(step: string): string {
   `;
 }
 
-export function renderOrganizerSuccess(result: OrganizerSubmissionResult): string {
+export function renderOrganizerSuccess(
+  result: OrganizerSubmissionResult,
+): string {
   return `
     <p class="eyebrow">생성 완료</p>
     <h2>${escapeHtml(result.awardTitle)}</h2>
@@ -642,7 +680,10 @@ function renderOrganizerError(): string {
   `;
 }
 
-function readFormString(formData: FormData, key: keyof OrganizerAwardDraft): string {
+function readFormString(
+  formData: FormData,
+  key: keyof OrganizerAwardDraft,
+): string {
   return String(formData.get(key) ?? "");
 }
 

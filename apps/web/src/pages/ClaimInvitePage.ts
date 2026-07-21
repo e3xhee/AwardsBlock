@@ -1,15 +1,18 @@
 import { apiGet, apiPost } from "../api/client";
 import {
   mountWalletConnectButton,
-  renderWalletConnectButton
+  renderWalletConnectButton,
 } from "../components/WalletConnectButton";
-import type { AwardBlockDetail, AwardBlockDetailResponse } from "./AwardDetailPage";
+import type {
+  AwardBlockDetail,
+  AwardBlockDetailResponse,
+} from "./AwardDetailPage";
 import {
   buildClaimAwardRequest,
   sendContractWrite,
-  type ContractWriteProvider
+  type ContractWriteProvider,
 } from "../blockchain/awardRegistry";
-import { chainConfig } from "../blockchain/config";
+import { getRegistryConfigStatus } from "../blockchain/config";
 import { getBrowserEthereumProvider } from "../auth/walletAuth";
 import { walletState } from "../state/appState";
 import { formatTokenAmount, shortenAddress } from "../utils/format";
@@ -50,7 +53,10 @@ type ClaimedAwardMemberResponse = {
 };
 
 export type ClaimInviteActionApi = {
-  post<TResponse, TBody = unknown>(path: string, body?: TBody): Promise<TResponse>;
+  post<TResponse, TBody = unknown>(
+    path: string,
+    body?: TBody,
+  ): Promise<TResponse>;
 };
 
 type ClaimInviteViewModel = {
@@ -74,7 +80,7 @@ type ClaimInviteViewModel = {
 };
 
 const defaultClaimInviteActionApi: ClaimInviteActionApi = {
-  post: apiPost
+  post: apiPost,
 };
 
 export function renderClaimInvitePage(token: string | null = null): string {
@@ -97,7 +103,10 @@ export function renderClaimInvitePage(token: string | null = null): string {
   `;
 }
 
-export async function mountClaimInvitePage(root: ParentNode, token: string): Promise<void> {
+export async function mountClaimInvitePage(
+  root: ParentNode,
+  token: string,
+): Promise<void> {
   mountWalletConnectButton(root);
 
   const content = root.querySelector<HTMLElement>("#claim-invite-content");
@@ -108,10 +117,10 @@ export async function mountClaimInvitePage(root: ParentNode, token: string): Pro
 
   try {
     const { invite } = await apiGet<ClaimInviteLookupResponse>(
-      `/claim-invites/${encodeURIComponent(token)}`
+      `/claim-invites/${encodeURIComponent(token)}`,
     );
     const { awardBlock } = await apiGet<AwardBlockDetailResponse>(
-      `/award-blocks/${encodeURIComponent(invite.member.awardId)}`
+      `/award-blocks/${encodeURIComponent(invite.member.awardId)}`,
     );
 
     renderInteractiveClaimInvite(content, token, invite, awardBlock);
@@ -123,12 +132,15 @@ export async function mountClaimInvitePage(root: ParentNode, token: string): Pro
 export function mapClaimInviteToViewModel(
   invite: ClaimInviteLookup,
   awardBlock: AwardBlockDetail,
-  token = ""
+  token = "",
 ): ClaimInviteViewModel {
   const member =
-    awardBlock.members.find((candidate) => candidate.id === invite.member.id) ?? null;
-  const walletAddress = invite.member.walletAddress ?? member?.walletAddress ?? null;
-  const inviteStatus = invite.member.inviteStatus ?? member?.inviteStatus ?? "Invited";
+    awardBlock.members.find((candidate) => candidate.id === invite.member.id) ??
+    null;
+  const walletAddress =
+    invite.member.walletAddress ?? member?.walletAddress ?? null;
+  const inviteStatus =
+    invite.member.inviteStatus ?? member?.inviteStatus ?? "Invited";
   const claimTxHash = member?.claimTxHash ?? null;
 
   return {
@@ -145,7 +157,7 @@ export function mapClaimInviteToViewModel(
     recipientName: invite.member.displayName,
     allocationLabel: `${formatReward(
       invite.member.allocation,
-      awardBlock.award.rewardTokenDecimals
+      awardBlock.award.rewardTokenDecimals,
     )} ${awardBlock.award.rewardTokenSymbol}`,
     statusLabel: formatInviteStatusLabel(inviteStatus),
     walletLabel: walletAddress ? shortenAddress(walletAddress) : "미연결",
@@ -153,7 +165,7 @@ export function mapClaimInviteToViewModel(
     canConnectWallet: walletAddress === null && inviteStatus !== "Claimed",
     canClaim: walletAddress !== null && inviteStatus === "WalletConnected",
     isClaimed: inviteStatus === "Claimed" || claimTxHash !== null,
-    claimTxLabel: claimTxHash ? shortenAddress(claimTxHash) : "기록 없음"
+    claimTxLabel: claimTxHash ? shortenAddress(claimTxHash) : "기록 없음",
   };
 }
 
@@ -164,7 +176,7 @@ export async function executeClaimInviteAction({
   from,
   registryAddress,
   provider,
-  api = defaultClaimInviteActionApi
+  api = defaultClaimInviteActionApi,
 }: {
   awardId: string;
   memberId: string;
@@ -183,14 +195,16 @@ export async function executeClaimInviteAction({
     buildClaimAwardRequest({
       from,
       registryAddress,
-      awardId: contractAwardId
-    })
+      awardId: contractAwardId,
+    }),
   );
 
-  const claimed = await api.post<ClaimedAwardMemberResponse, { claimTxHash: string }>(
-    `/award-members/${encodeURIComponent(memberId)}/claim`,
-    { claimTxHash: txHash }
-  );
+  const claimed = await api.post<
+    ClaimedAwardMemberResponse,
+    { claimTxHash: string }
+  >(`/award-members/${encodeURIComponent(memberId)}/claim`, {
+    claimTxHash: txHash,
+  });
 
   await api.post<
     { transaction: { id: string } },
@@ -202,7 +216,7 @@ export async function executeClaimInviteAction({
   >(`/awards/${encodeURIComponent(awardId)}/transactions`, {
     transactionType: "AwardClaimed",
     walletAddress: from,
-    txHash
+    txHash,
   });
 
   return { txHash: claimed.member.claimTxHash };
@@ -212,26 +226,36 @@ function renderInteractiveClaimInvite(
   content: HTMLElement,
   token: string,
   invite: ClaimInviteLookup,
-  awardBlock: AwardBlockDetail
+  awardBlock: AwardBlockDetail,
 ): void {
   const viewModel = mapClaimInviteToViewModel(invite, awardBlock, token);
   content.innerHTML = renderClaimInviteContent(viewModel);
 
-  const connectButton = content.querySelector<HTMLButtonElement>("[data-claim-connect]");
+  const connectButton = content.querySelector<HTMLButtonElement>(
+    "[data-claim-connect]",
+  );
   connectButton?.addEventListener("click", async () => {
     connectButton.disabled = true;
     connectButton.textContent = "지갑 연결 중...";
 
     try {
       const connected = await apiPost<ConnectedClaimInviteResponse>(
-        `/claim-invites/${encodeURIComponent(token)}/connect-wallet`
+        `/claim-invites/${encodeURIComponent(token)}/connect-wallet`,
       );
       const refreshedAward = await apiGet<AwardBlockDetailResponse>(
-        `/award-blocks/${encodeURIComponent(connected.invite.member.awardId)}`
+        `/award-blocks/${encodeURIComponent(connected.invite.member.awardId)}`,
       );
-      renderInteractiveClaimInvite(content, token, connected.invite, refreshedAward.awardBlock);
+      renderInteractiveClaimInvite(
+        content,
+        token,
+        connected.invite,
+        refreshedAward.awardBlock,
+      );
     } catch {
-      content.insertAdjacentHTML("afterbegin", renderClaimActionError("지갑 세션이 필요합니다"));
+      content.insertAdjacentHTML(
+        "afterbegin",
+        renderClaimActionError("지갑 세션이 필요합니다"),
+      );
       connectButton.disabled = false;
       connectButton.textContent = "지갑 연결";
     }
@@ -240,14 +264,25 @@ function renderInteractiveClaimInvite(
   const claimForm = content.querySelector<HTMLFormElement>("[data-claim-form]");
   claimForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const submitButton = claimForm.querySelector<HTMLButtonElement>("button[type='submit']");
+    const submitButton = claimForm.querySelector<HTMLButtonElement>(
+      "button[type='submit']",
+    );
     const provider = getBrowserEthereumProvider();
     const from = walletState.address;
+    const registryStatus = getRegistryConfigStatus();
 
-    if (!provider || !from || chainConfig.registryAddress === "") {
+    if (!provider || !from) {
       claimForm.insertAdjacentHTML(
         "beforebegin",
-        renderClaimActionError("지갑 세션과 Registry 컨트랙트 주소가 필요합니다")
+        renderClaimActionError("지갑 세션이 필요합니다"),
+      );
+      return;
+    }
+
+    if (!registryStatus.ready) {
+      claimForm.insertAdjacentHTML(
+        "beforebegin",
+        renderClaimActionError(registryStatus.message),
       );
       return;
     }
@@ -263,14 +298,14 @@ function renderInteractiveClaimInvite(
         memberId: viewModel.memberId,
         contractAwardId: viewModel.contractAwardId,
         from,
-        registryAddress: chainConfig.registryAddress,
-        provider
+        registryAddress: registryStatus.registryAddress,
+        provider,
       });
       content.innerHTML = renderClaimSuccess(result.txHash);
     } catch {
       claimForm.insertAdjacentHTML(
         "beforebegin",
-        renderClaimActionError("클레임 트랜잭션을 완료하지 못했습니다")
+        renderClaimActionError("클레임 트랜잭션을 완료하지 못했습니다"),
       );
       if (submitButton) {
         submitButton.disabled = false;
@@ -404,7 +439,7 @@ function formatDateLabel(value: string): string {
   return new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
     month: "short",
-    day: "2-digit"
+    day: "2-digit",
   }).format(new Date(value));
 }
 

@@ -5,9 +5,9 @@ import {
   buildFinalizeAwardRequest,
   buildFundAwardRequest,
   sendContractWrite,
-  type ContractWriteProvider
+  type ContractWriteProvider,
 } from "../blockchain/awardRegistry";
-import { chainConfig } from "../blockchain/config";
+import { getRegistryConfigStatus } from "../blockchain/config";
 import { getBrowserEthereumProvider } from "../auth/walletAuth";
 import { walletState } from "../state/appState";
 import { shortenAddress } from "../utils/format";
@@ -23,8 +23,14 @@ export type OnchainAward = {
 export type AwardOnchainAction = "approve" | "fund" | "finalize" | "claim";
 
 export type AwardOnchainActionApi = {
-  post<TResponse, TBody = unknown>(path: string, body?: TBody): Promise<TResponse>;
-  patch<TResponse, TBody = unknown>(path: string, body?: TBody): Promise<TResponse>;
+  post<TResponse, TBody = unknown>(
+    path: string,
+    body?: TBody,
+  ): Promise<TResponse>;
+  patch<TResponse, TBody = unknown>(
+    path: string,
+    body?: TBody,
+  ): Promise<TResponse>;
 };
 
 type ExecuteAwardOnchainActionInput = {
@@ -44,7 +50,7 @@ type TransactionRecordResponse = {
 
 const defaultApi: AwardOnchainActionApi = {
   post: apiPost,
-  patch: apiPatch
+  patch: apiPatch,
 };
 
 export function renderAwardOnchainActions(award: OnchainAward): string {
@@ -72,44 +78,58 @@ export function mountAwardOnchainActions(root: ParentNode): void {
 
   const award = readAwardFromPanel(panel);
 
-  panel.querySelectorAll<HTMLButtonElement>("[data-onchain-action]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      const action = button.dataset.onchainAction as AwardOnchainAction | undefined;
-      const provider = getBrowserEthereumProvider();
-      const from = walletState.address;
+  panel
+    .querySelectorAll<HTMLButtonElement>("[data-onchain-action]")
+    .forEach((button) => {
+      button.addEventListener("click", async () => {
+        const action = button.dataset.onchainAction as
+          AwardOnchainAction | undefined;
+        const provider = getBrowserEthereumProvider();
+        const from = walletState.address;
+        const registryStatus = getRegistryConfigStatus();
 
-      if (!action || !provider || !from || chainConfig.registryAddress === "") {
-        status.textContent = "지갑 세션과 Registry 컨트랙트 주소가 필요합니다";
-        panel.classList.add("onchain-actions--error");
-        return;
-      }
+        if (!action) {
+          return;
+        }
 
-      panel.classList.remove("onchain-actions--error");
-      status.textContent = "지갑 승인 대기 중";
-      button.disabled = true;
+        if (!provider || !from) {
+          status.textContent = "지갑 세션이 필요합니다";
+          panel.classList.add("onchain-actions--error");
+          return;
+        }
 
-      try {
-        const result = await executeAwardOnchainAction({
-          action,
-          award,
-          from,
-          registryAddress: chainConfig.registryAddress,
-          provider
-        });
-        status.textContent = `제출됨 ${shortenAddress(result.txHash)}`;
-        panel.outerHTML = renderAwardOnchainActions({
-          ...award,
-          status: getNextAwardStatus(action, award.status)
-        });
-        mountAwardOnchainActions(root);
-      } catch {
-        status.textContent = "트랜잭션 실패";
-        panel.classList.add("onchain-actions--error");
-      } finally {
-        button.disabled = false;
-      }
+        if (!registryStatus.ready) {
+          status.textContent = registryStatus.message;
+          panel.classList.add("onchain-actions--error");
+          return;
+        }
+
+        panel.classList.remove("onchain-actions--error");
+        status.textContent = "지갑 승인 대기 중";
+        button.disabled = true;
+
+        try {
+          const result = await executeAwardOnchainAction({
+            action,
+            award,
+            from,
+            registryAddress: registryStatus.registryAddress,
+            provider,
+          });
+          status.textContent = `제출됨 ${shortenAddress(result.txHash)}`;
+          panel.outerHTML = renderAwardOnchainActions({
+            ...award,
+            status: getNextAwardStatus(action, award.status),
+          });
+          mountAwardOnchainActions(root);
+        } catch {
+          status.textContent = "트랜잭션 실패";
+          panel.classList.add("onchain-actions--error");
+        } finally {
+          button.disabled = false;
+        }
+      });
     });
-  });
 }
 
 export async function executeAwardOnchainAction({
@@ -118,7 +138,7 @@ export async function executeAwardOnchainAction({
   from,
   registryAddress,
   provider,
-  api = defaultApi
+  api = defaultApi,
 }: ExecuteAwardOnchainActionInput): Promise<{ txHash: string }> {
   if (!award.contractAwardId) {
     throw new Error("CONTRACT_AWARD_ID_REQUIRED");
@@ -130,25 +150,25 @@ export async function executeAwardOnchainAction({
           from,
           tokenAddress: award.rewardTokenAddress,
           spenderAddress: registryAddress,
-          amount: award.totalReward
+          amount: award.totalReward,
         })
       : action === "fund"
         ? buildFundAwardRequest({
             from,
             registryAddress,
             awardId: award.contractAwardId,
-            amount: award.totalReward
+            amount: award.totalReward,
           })
         : action === "finalize"
           ? buildFinalizeAwardRequest({
               from,
               registryAddress,
-              awardId: award.contractAwardId
+              awardId: award.contractAwardId,
             })
           : buildClaimAwardRequest({
               from,
               registryAddress,
-              awardId: award.contractAwardId
+              awardId: award.contractAwardId,
             });
 
   const txHash = await sendContractWrite(provider, request);
@@ -165,7 +185,7 @@ export async function executeAwardOnchainAction({
     >(`/awards/${encodeURIComponent(award.id)}/transactions`, {
       transactionType,
       walletAddress: from,
-      txHash
+      txHash,
     });
   }
 
@@ -194,7 +214,10 @@ function getAvailableOnchainActions(award: OnchainAward): AwardOnchainAction[] {
   return [];
 }
 
-function getOnchainStatusLabel(award: OnchainAward, actions: AwardOnchainAction[]): string {
+function getOnchainStatusLabel(
+  award: OnchainAward,
+  actions: AwardOnchainAction[],
+): string {
   if (!award.contractAwardId) {
     return "트랜잭션 전송 전에 Contract Award ID가 필요합니다.";
   }
@@ -241,7 +264,7 @@ function readAwardFromPanel(panel: HTMLElement): OnchainAward {
     contractAwardId: panel.dataset.contractAwardId || null,
     rewardTokenAddress: panel.dataset.rewardTokenAddress ?? "",
     totalReward: panel.dataset.totalReward ?? "0",
-    status: panel.dataset.awardStatus ?? ""
+    status: panel.dataset.awardStatus ?? "",
   };
 }
 
@@ -252,25 +275,31 @@ function getTransactionRecordType(action: AwardOnchainAction): string | null {
   return null;
 }
 
-function getAwardPatch(action: AwardOnchainAction, txHash: string): Record<string, string> | null {
+function getAwardPatch(
+  action: AwardOnchainAction,
+  txHash: string,
+): Record<string, string> | null {
   if (action === "fund") {
     return {
       fundTxHash: txHash,
-      status: "Funded"
+      status: "Funded",
     };
   }
 
   if (action === "finalize") {
     return {
       finalizeTxHash: txHash,
-      status: "Claiming"
+      status: "Claiming",
     };
   }
 
   return null;
 }
 
-function getNextAwardStatus(action: AwardOnchainAction, fallbackStatus: string): string {
+function getNextAwardStatus(
+  action: AwardOnchainAction,
+  fallbackStatus: string,
+): string {
   if (action === "fund") return "Funded";
   if (action === "finalize") return "Claiming";
   return fallbackStatus;
