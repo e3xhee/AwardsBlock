@@ -316,6 +316,31 @@ if (!successHtml.includes("펀딩 진행하기")) {
   throw new Error("Expected funding CTA after organizer setup");
 }
 
-if (!successHtml.includes("Approve token / Fund award")) {
-  throw new Error("Expected funding next-step guidance");
+if (!successHtml.includes("리워드 예치")) {
+  throw new Error("Expected Korean funding next-step guidance");
+}
+
+for (const label of [
+  "이벤트 ID",
+  "프로젝트 ID",
+  "어워드 ID",
+  "컨트랙트 어워드 ID",
+  "생성 트랜잭션",
+  "수령자 배정 트랜잭션",
+  "초대 ID",
+]) {
+  if (!successHtml.includes(label)) {
+    throw new Error("Expected Korean success label " + label);
+  }
+}
+
+for (const englishCopy of [
+  "Approve token / Fund award",
+  "Event ID",
+  "Project ID",
+  "Create Tx",
+]) {
+  if (successHtml.includes(englishCopy)) {
+    throw new Error("Expected success panel not to include " + englishCopy);
+  }
 }

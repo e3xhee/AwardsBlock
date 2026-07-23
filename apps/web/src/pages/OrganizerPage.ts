@@ -691,15 +691,16 @@ export function renderOrganizerSuccess(
   return `
     <p class="eyebrow">생성 완료</p>
     <h2>${escapeHtml(result.awardTitle)}</h2>
-    <p>어워드가 온체인에 등록됐습니다. 상세 페이지에서 Approve token / Fund award를 이어서 실행하세요.</p>
+    <p>어워드가 온체인에 등록됐습니다. 상세 페이지에서 토큰 승인과 리워드 예치를 이어서 실행하세요.</p>
     <dl class="organizer-result-list">
       <div><dt>수령자</dt><dd>${escapeHtml(result.recipientName)}</dd></div>
-      <div><dt>Event ID</dt><dd>${escapeHtml(result.eventId)}</dd></div>
-      <div><dt>Project ID</dt><dd>${escapeHtml(result.projectId)}</dd></div>
-      <div><dt>Award ID</dt><dd>${escapeHtml(result.awardId)}</dd></div>
-      <div><dt>Contract Award ID</dt><dd>${escapeHtml(result.contractAwardId)}</dd></div>
-      <div><dt>Create Tx</dt><dd>${escapeHtml(result.createTxHash)}</dd></div>
-      <div><dt>Invite ID</dt><dd>${escapeHtml(result.inviteId)}</dd></div>
+      <div><dt>이벤트 ID</dt><dd>${escapeHtml(result.eventId)}</dd></div>
+      <div><dt>프로젝트 ID</dt><dd>${escapeHtml(result.projectId)}</dd></div>
+      <div><dt>어워드 ID</dt><dd>${escapeHtml(result.awardId)}</dd></div>
+      <div><dt>컨트랙트 어워드 ID</dt><dd>${escapeHtml(result.contractAwardId)}</dd></div>
+      <div><dt>생성 트랜잭션</dt><dd>${escapeHtml(result.createTxHash)}</dd></div>
+      <div><dt>수령자 배정 트랜잭션</dt><dd>${escapeHtml(result.setRecipientsTxHash)}</dd></div>
+      <div><dt>초대 ID</dt><dd>${escapeHtml(result.inviteId)}</dd></div>
     </dl>
     <div class="organizer-result-actions">
       <a class="text-link" href="${escapeHtml(result.awardPath)}">펀딩 진행하기</a>
