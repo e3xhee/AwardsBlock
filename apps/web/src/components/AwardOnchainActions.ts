@@ -9,7 +9,7 @@ import {
   type ContractWriteProvider,
 } from "../blockchain/awardRegistry";
 import { getRegistryConfigStatus } from "../blockchain/config";
-import { getBrowserEthereumProvider } from "../auth/walletAuth";
+import { getBrowserEthereumProvider, loadWalletSession } from "../auth/walletAuth";
 import { walletState } from "../state/appState";
 import { shortenAddress } from "../utils/format";
 
@@ -54,6 +54,20 @@ const defaultApi: AwardOnchainActionApi = {
   patch: apiPatch,
 };
 
+type WalletSessionLoader = () => Promise<{ walletAddress: string } | null>;
+
+export async function resolveAwardOnchainFromAddress(
+  currentAddress: string | null = walletState.address,
+  loadSession: WalletSessionLoader = loadWalletSession,
+): Promise<string | null> {
+  if (currentAddress) {
+    return currentAddress;
+  }
+
+  const session = await loadSession();
+  return session?.walletAddress ?? null;
+}
+
 export function renderAwardOnchainActions(award: OnchainAward): string {
   const actions = getAvailableOnchainActions(award);
 
@@ -86,14 +100,13 @@ export function mountAwardOnchainActions(root: ParentNode): void {
         const action = button.dataset.onchainAction as
           AwardOnchainAction | undefined;
         const provider = getBrowserEthereumProvider();
-        const from = walletState.address;
         const registryStatus = getRegistryConfigStatus();
 
         if (!action) {
           return;
         }
 
-        if (!provider || !from) {
+        if (!provider) {
           status.textContent = "지갑 세션이 필요합니다";
           panel.classList.add("onchain-actions--error");
           return;
@@ -108,6 +121,15 @@ export function mountAwardOnchainActions(root: ParentNode): void {
         panel.classList.remove("onchain-actions--error");
         status.textContent = "지갑 승인 대기 중";
         button.disabled = true;
+
+        const from = await resolveAwardOnchainFromAddress();
+
+        if (!from) {
+          status.textContent = "\uC9C0\uAC11 \uC138\uC158\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.";
+          panel.classList.add("onchain-actions--error");
+          button.disabled = false;
+          return;
+        }
 
         try {
           const result = await executeAwardOnchainAction({

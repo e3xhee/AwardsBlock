@@ -205,7 +205,7 @@ export function createAwardMemberRouter(database: DatabaseSync) {
       return;
     }
 
-    if (!isAwardMemberWalletConnected(member)) {
+    if (!hasClaimableAwardMemberWallet(member)) {
       sendAwardMemberWalletNotConnected(response);
       return;
     }
@@ -421,12 +421,8 @@ function isAwardMemberClaimed(member: AwardMemberRow): boolean {
   return member.invite_status === "Claimed" || member.claimed_at !== null || member.claim_tx_hash !== null;
 }
 
-function isAwardMemberWalletConnected(member: AwardMemberRow): boolean {
-  return (
-    member.invite_status === "WalletConnected" &&
-    member.wallet_address !== null &&
-    member.wallet_connected_at !== null
-  );
+function hasClaimableAwardMemberWallet(member: AwardMemberRow): boolean {
+  return member.wallet_address !== null;
 }
 
 function findAwardOwner(database: DatabaseSync, awardId: string): AwardOwnerRow | undefined {

@@ -1,6 +1,7 @@
 import {
   executeAwardOnchainAction,
   renderAwardOnchainActions,
+  resolveAwardOnchainFromAddress,
   type AwardOnchainActionApi,
   type OnchainAward
 } from "./AwardOnchainActions";
@@ -88,6 +89,31 @@ const result = await executeAwardOnchainAction({
   provider,
   api
 });
+
+const restoredFrom = await resolveAwardOnchainFromAddress(null, async () => ({
+  walletAddress: "0x9999999999999999999999999999999999999999",
+  expiresAt: "2026-08-01T00:00:00.000Z"
+}));
+
+if (restoredFrom !== "0x9999999999999999999999999999999999999999") {
+  throw new Error("Expected on-chain action wallet to restore from session");
+}
+
+let sessionLoadCount = 0;
+const existingFrom = await resolveAwardOnchainFromAddress(
+  "0x0123456789abcdef0123456789abcdef01234567",
+  async () => {
+    sessionLoadCount += 1;
+    return null;
+  }
+);
+
+if (
+  existingFrom !== "0x0123456789abcdef0123456789abcdef01234567" ||
+  sessionLoadCount !== 0
+) {
+  throw new Error("Expected existing wallet state to be reused without loading session");
+}
 
 if (result.txHash !== "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb") {
   throw new Error("Expected fund transaction hash");

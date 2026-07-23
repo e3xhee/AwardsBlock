@@ -14,6 +14,9 @@ const organizerAccount = privateKeyToAccount(
 const otherAccount = privateKeyToAccount(
   "0x1111111111111111111111111111111111111111111111111111111111111111"
 );
+const recipientAccount = privateKeyToAccount(
+  "0x2222222222222222222222222222222222222222222222222222222222222222"
+);
 
 const eventInput = {
   name: "Seoul Demo Day",
@@ -289,6 +292,45 @@ test("event organizers can create, read, update, and delete award members", asyn
 
     const missingResponse = await fetch(`${baseUrl}/award-members/${created.member.id}`);
     assert.equal(missingResponse.status, 404);
+  });
+});
+
+test("preassigned recipient wallets can claim without a separate connect step", async () => {
+  await withApi(async (baseUrl) => {
+    const organizerCookie = await signIn(baseUrl, organizerAccount);
+    const recipientCookie = await signIn(baseUrl, recipientAccount);
+    const eventId = await createEvent(baseUrl, organizerCookie);
+    const projectId = await createProject(baseUrl, organizerCookie, eventId);
+    const awardId = await createAward(baseUrl, organizerCookie, projectId);
+
+    const createResponse = await fetch(`${baseUrl}/awards/${awardId}/members`, {
+      method: "POST",
+      headers: { ...jsonHeaders, cookie: organizerCookie },
+      body: JSON.stringify({
+        ...memberInput,
+        walletAddress: recipientAccount.address
+      })
+    });
+    assert.equal(createResponse.status, 201);
+    const created = await readJson<AwardMemberResponse>(createResponse);
+    assert.equal(created.member.inviteStatus, "Pending");
+    assert.equal(created.member.walletAddress, recipientAccount.address.toLowerCase());
+
+    const claimResponse = await fetch(`${baseUrl}/award-members/${created.member.id}/claim`, {
+      method: "POST",
+      headers: { ...jsonHeaders, cookie: recipientCookie },
+      body: JSON.stringify({
+        claimTxHash:
+          "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      })
+    });
+    assert.equal(claimResponse.status, 200);
+    const claimed = await readJson<AwardMemberResponse>(claimResponse);
+    assert.equal(claimed.member.inviteStatus, "Claimed");
+    assert.equal(
+      claimed.member.claimTxHash,
+      "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    );
   });
 });
 
