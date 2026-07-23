@@ -72,6 +72,7 @@ export type OrganizerDashboardEvent = {
   description: string;
   startDate: string;
   endDate: string;
+  submissionDeadline?: string | null;
   location: string | null;
   status: string;
 };
@@ -109,6 +110,110 @@ const defaultWinner = {
   claimEnd: "2026-09-01T00:00:00.000Z",
 };
 
+const mockEventTemplates = [
+  {
+    id: "mock-seoul-builder-sprint",
+    name: "Seoul Builder Sprint",
+    description:
+      "A 48-hour builder sprint for wallet onboarding and community tooling.",
+    startDate: "2026-08-08T10:00:00.000Z",
+    endDate: "2026-08-09T18:00:00.000Z",
+    submissionDeadline: "2026-08-07T23:59:00.000Z",
+    location: "Seoul, Korea",
+    status: "Published",
+  },
+  {
+    id: "mock-campus-proof-demo-day",
+    name: "Campus Proof Demo Day",
+    description:
+      "A demo day for student builders submitting verifiable project portfolios.",
+    startDate: "2026-08-15T11:00:00.000Z",
+    endDate: "2026-08-15T19:00:00.000Z",
+    submissionDeadline: "2026-08-12T23:59:00.000Z",
+    location: "Daejeon, Korea",
+    status: "Published",
+  },
+  {
+    id: "mock-public-goods-mini-hack",
+    name: "Public Goods Mini Hack",
+    description:
+      "A compact Web3 hackathon for public goods, impact, and local problems.",
+    startDate: "2026-08-22T09:30:00.000Z",
+    endDate: "2026-08-23T17:30:00.000Z",
+    submissionDeadline: "2026-08-20T23:59:00.000Z",
+    location: "Busan, Korea",
+    status: "Published",
+  },
+] satisfies Array<Omit<OrganizerDashboardEvent, "organizerWallet">>;
+
+const mockProjectTemplates = {
+  "mock-seoul-builder-sprint": [
+    {
+      id: "mock-project-uniport",
+      submitterWallet: "0x1111111111111111111111111111111111111111",
+      name: "Uniport",
+      tagline: "Verifiable project passport for student builders",
+      description:
+        "Uniport connects wallet identity, project submissions, and award records into one public profile.",
+      githubUrl: "https://github.com/example/uniport",
+      demoUrl: "https://uniport.example",
+    },
+    {
+      id: "mock-project-onboard-kit",
+      submitterWallet: "0x2222222222222222222222222222222222222222",
+      name: "Onboard Kit",
+      tagline: "Guided Web3 onboarding for first-time wallet users",
+      description:
+        "Onboard Kit guides participants through wallet connection, project submission, and reward claiming.",
+      githubUrl: "https://github.com/example/onboard-kit",
+      demoUrl: "https://onboard-kit.example",
+    },
+  ],
+  "mock-campus-proof-demo-day": [
+    {
+      id: "mock-project-chainfolio",
+      submitterWallet: "0x3333333333333333333333333333333333333333",
+      name: "Chainfolio",
+      tagline: "Campus portfolio for learning and project proof",
+      description:
+        "Chainfolio packages class work, club projects, and hackathon results as wallet-based proof.",
+      githubUrl: "https://github.com/example/chainfolio",
+      demoUrl: "https://chainfolio.example",
+    },
+    {
+      id: "mock-project-proofboard",
+      submitterWallet: "0x4444444444444444444444444444444444444444",
+      name: "ProofBoard",
+      tagline: "Submission board for team review and judging",
+      description:
+        "ProofBoard lets organizers review team status, links, and judging notes in one place.",
+      githubUrl: "https://github.com/example/proofboard",
+      demoUrl: "https://proofboard.example",
+    },
+  ],
+  "mock-public-goods-mini-hack": [
+    {
+      id: "mock-project-impact-pass",
+      submitterWallet: "0x5555555555555555555555555555555555555555",
+      name: "Impact Pass",
+      tagline: "Onchain badge for public-goods contributions",
+      description:
+        "Impact Pass records local community work so sponsors can verify contribution history.",
+      githubUrl: "https://github.com/example/impact-pass",
+      demoUrl: "https://impact-pass.example",
+    },
+    {
+      id: "mock-project-open-grants",
+      submitterWallet: "0x6666666666666666666666666666666666666666",
+      name: "Open Grants",
+      tagline: "Transparent milestone grants for small public-goods teams",
+      description:
+        "Open Grants links proposals, reviews, milestones, and reward claims into a public record.",
+      githubUrl: "https://github.com/example/open-grants",
+      demoUrl: "https://open-grants.example",
+    },
+  ],
+} satisfies Record<string, Array<Omit<OrganizerDashboardProject, "eventId">>>;
 export function renderOrganizerDashboardPage(): string {
   return `
     <main class="page-shell organizer-page organizer-dashboard-page">
@@ -234,6 +339,45 @@ export function filterOrganizerEvents(
   );
 }
 
+export function mergeOrganizerEventsWithMockData(
+  events: OrganizerDashboardEvent[],
+  organizerWallet: string | null,
+): OrganizerDashboardEvent[] {
+  if (!organizerWallet) return [];
+
+  const realEvents = filterOrganizerEvents(events, organizerWallet).map(
+    normalizeEventDeadline,
+  );
+  const mockEvents = mockEventTemplates.map((event) => ({
+    ...event,
+    organizerWallet: organizerWallet.toLowerCase(),
+  }));
+
+  const realEventKeys = new Set(realEvents.map(getEventDedupeKey));
+  const visibleMockEvents = mockEvents.filter(
+    (event) => !realEventKeys.has(getEventDedupeKey(event)),
+  );
+
+  return [...realEvents, ...visibleMockEvents];
+}
+
+export function getMockProjectsForEvent(
+  event: OrganizerDashboardEvent,
+): OrganizerDashboardProject[] {
+  const directKey = getMockTemplateKeyForEventId(event.id);
+  const templates = directKey
+    ? mockProjectTemplates[directKey]
+    : mockProjectTemplates[findMockTemplateKey(event.name)];
+
+  return templates.map((project) => ({
+    ...project,
+    id: project.id.startsWith("mock-")
+      ? `${project.id}-${slugify(event.id)}`
+      : project.id,
+    eventId: event.id,
+  }));
+}
+
 export function mapProjectToWinnerPayloads(
   project: OrganizerDashboardProject,
 ): {
@@ -284,14 +428,16 @@ async function loadOrganizerEvents(
 
   try {
     const response = await apiGet<EventListResponse>("/events");
-    const events = filterOrganizerEvents(response.events, organizerWallet);
+    const events = mergeOrganizerEventsWithMockData(
+      response.events,
+      organizerWallet,
+    );
     eventList.innerHTML = renderOrganizerEventList(events);
     bindOrganizerEventButtons(eventList, projectReview, events);
   } catch {
-    eventList.innerHTML = renderError(
-      "행사를 불러오지 못했습니다",
-      "잠시 후 다시 시도하세요.",
-    );
+    const events = mergeOrganizerEventsWithMockData([], organizerWallet);
+    eventList.innerHTML = renderOrganizerEventList(events);
+    bindOrganizerEventButtons(eventList, projectReview, events);
   }
 }
 
@@ -327,17 +473,26 @@ async function loadEventProjects(
 ): Promise<void> {
   projectReview.innerHTML = renderProjectsLoading(event.name);
 
+  if (isMockEvent(event)) {
+    const projects = getMockProjectsForEvent(event);
+    projectReview.innerHTML = renderEventProjects(event, projects);
+    bindWinnerButtons(projectReview, projects);
+    return;
+  }
+
   try {
     const response = await apiGet<EventProjectListResponse>(
       `/events/${encodeURIComponent(event.id)}/projects`,
     );
-    projectReview.innerHTML = renderEventProjects(event, response.projects);
-    bindWinnerButtons(projectReview, response.projects);
+    const projects = response.projects.length
+      ? response.projects
+      : getMockProjectsForEvent(event);
+    projectReview.innerHTML = renderEventProjects(event, projects);
+    bindWinnerButtons(projectReview, projects);
   } catch {
-    projectReview.innerHTML = renderError(
-      "프로젝트를 불러오지 못했습니다",
-      "행사 선택을 다시 시도하세요.",
-    );
+    const projects = getMockProjectsForEvent(event);
+    projectReview.innerHTML = renderEventProjects(event, projects);
+    bindWinnerButtons(projectReview, projects);
   }
 }
 
@@ -355,6 +510,15 @@ function bindWinnerButtons(
         if (!project) return;
 
         setButtonPending(button, "우승자 생성 중");
+
+        if (isMockProject(project)) {
+          button.insertAdjacentHTML(
+            "afterend",
+            `<p class="muted-label">Mock project selected. Real submitted projects are saved as award records.</p>`,
+          );
+          button.textContent = "\uC6B0\uC2B9\uC790 \uC120\uD0DD \uC644\uB8CC";
+          return;
+        }
 
         try {
           const { award, member } = mapProjectToWinnerPayloads(project);
@@ -412,7 +576,11 @@ function renderOrganizerEventList(events: OrganizerDashboardEvent[]): string {
   return events.map(renderOrganizerEventRow).join("");
 }
 
-function renderOrganizerEventRow(event: OrganizerDashboardEvent): string {
+export function renderOrganizerEventRow(
+  event: OrganizerDashboardEvent,
+): string {
+  const submissionDeadline = event.submissionDeadline ?? event.endDate;
+
   return `
     <article class="organizer-event-row">
       <div>
@@ -422,6 +590,7 @@ function renderOrganizerEventRow(event: OrganizerDashboardEvent): string {
       </div>
       <dl class="organizer-result-list">
         <div><dt>기간</dt><dd>${escapeHtml(formatDateRange(event.startDate, event.endDate))}</dd></div>
+        <div><dt>제출 마감</dt><dd>${escapeHtml(formatDateTimeLabel(submissionDeadline))}</dd></div>
         <div><dt>장소</dt><dd>${escapeHtml(event.location ?? "장소 없음")}</dd></div>
       </dl>
       <button class="button" type="button" data-organizer-event-id="${escapeHtml(event.id)}">제출 프로젝트 보기</button>
@@ -545,6 +714,57 @@ function renderProjectLink(url: string | null): string {
   return `<a class="text-link" href="${escapeHtml(url)}">열기</a>`;
 }
 
+function normalizeEventDeadline(
+  event: OrganizerDashboardEvent,
+): OrganizerDashboardEvent {
+  return {
+    ...event,
+    submissionDeadline: event.submissionDeadline ?? event.endDate,
+  };
+}
+
+function getEventDedupeKey(event: OrganizerDashboardEvent): string {
+  return [event.name, event.startDate, event.endDate]
+    .map((value) => value.toLowerCase())
+    .join(":");
+}
+
+function getMockTemplateKeyForEventId(
+  eventId: string,
+): keyof typeof mockProjectTemplates | null {
+  return eventId in mockProjectTemplates
+    ? (eventId as keyof typeof mockProjectTemplates)
+    : null;
+}
+
+function findMockTemplateKey(
+  eventName: string,
+): keyof typeof mockProjectTemplates {
+  const normalized = eventName.toLowerCase();
+  if (normalized.includes("campus") || normalized.includes("proof")) {
+    return "mock-campus-proof-demo-day";
+  }
+  if (normalized.includes("public") || normalized.includes("goods")) {
+    return "mock-public-goods-mini-hack";
+  }
+  return "mock-seoul-builder-sprint";
+}
+
+function isMockEvent(event: OrganizerDashboardEvent): boolean {
+  return event.id.startsWith("mock-");
+}
+
+function isMockProject(project: OrganizerDashboardProject): boolean {
+  return project.id.startsWith("mock-");
+}
+
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function readRequired(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
 }
@@ -581,6 +801,17 @@ function formatDateLabel(value: string): string {
     year: "numeric",
     month: "short",
     day: "2-digit",
+    timeZone: "UTC",
+  }).format(new Date(value));
+}
+
+function formatDateTimeLabel(value: string): string {
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
     timeZone: "UTC",
   }).format(new Date(value));
 }

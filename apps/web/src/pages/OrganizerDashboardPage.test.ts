@@ -1,7 +1,10 @@
 import {
   filterOrganizerEvents,
+  getMockProjectsForEvent,
   mapProjectToWinnerPayloads,
+  mergeOrganizerEventsWithMockData,
   renderOrganizerDashboardPage,
+  renderOrganizerEventRow,
   type OrganizerDashboardEvent,
   type OrganizerDashboardProject,
 } from "./OrganizerDashboardPage";
@@ -56,6 +59,7 @@ const events: OrganizerDashboardEvent[] = [
     description: "My event",
     startDate: "2026-08-01T00:00:00.000Z",
     endDate: "2026-08-02T00:00:00.000Z",
+    submissionDeadline: "2026-07-25T23:59:00.000Z",
     location: "Seoul",
     status: "Published",
   },
@@ -66,6 +70,7 @@ const events: OrganizerDashboardEvent[] = [
     description: "Other event",
     startDate: "2026-08-01T00:00:00.000Z",
     endDate: "2026-08-02T00:00:00.000Z",
+    submissionDeadline: null,
     location: null,
     status: "Published",
   },
@@ -76,6 +81,38 @@ const organizerEvents = filterOrganizerEvents(events, "0xAAAA");
 if (organizerEvents.length !== 1 || organizerEvents[0]?.id !== "event-1") {
   throw new Error(
     "Expected organizer dashboard to show only events created by the signed-in organizer",
+  );
+}
+
+const mergedEvents = mergeOrganizerEventsWithMockData([], "0xAAAA");
+const mergedEventNames = new Set(mergedEvents.map((event) => event.name));
+
+if (mergedEvents.length < 3 || mergedEventNames.size !== mergedEvents.length) {
+  throw new Error(
+    "Expected organizer dashboard mock events to contain multiple distinct events",
+  );
+}
+
+if (!mergedEvents.every((event) => event.submissionDeadline)) {
+  throw new Error("Expected every mock event to expose a submission deadline");
+}
+
+const eventRow = renderOrganizerEventRow(mergedEvents[0]);
+
+if (!eventRow.includes("제출 마감")) {
+  throw new Error(
+    "Expected organizer event rows to show the submission deadline",
+  );
+}
+
+const mockProjects = getMockProjectsForEvent(mergedEvents[0]);
+
+if (
+  mockProjects.length === 0 ||
+  !mockProjects[0]?.eventId.includes(mergedEvents[0].id)
+) {
+  throw new Error(
+    "Expected clicking a mock event to reveal matching submitted projects",
   );
 }
 
