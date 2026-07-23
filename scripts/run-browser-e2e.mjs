@@ -2,10 +2,13 @@ import { spawn } from "node:child_process";
 import { rm } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
 
-const chromePath = "C:/Program Files/Google/Chrome/Application/chrome.exe";
-const port = 9333;
-const userDataDir = `C:/tmp/awardblock-cdp-${Date.now()}`;
-const baseUrl = "http://localhost:5173";
+const chromePath =
+  process.env.AWARDBLOCK_CHROME_PATH ??
+  "C:/Program Files/Google/Chrome/Application/chrome.exe";
+const port = Number(process.env.AWARDBLOCK_CDP_PORT ?? 9333);
+const userDataDir = `${process.env.TEMP ?? "C:/tmp"}/awardblock-cdp-${Date.now()}`;
+const webBaseUrl = process.env.AWARDBLOCK_WEB_URL ?? "http://localhost:5173";
+const apiBaseUrl = process.env.AWARDBLOCK_API_URL ?? "http://localhost:4000";
 
 const chrome = spawn(
   chromePath,
@@ -16,7 +19,7 @@ const chrome = spawn(
     "--no-default-browser-check",
     `--remote-debugging-port=${port}`,
     `--user-data-dir=${userDataDir}`,
-    `${baseUrl}/organizer`,
+    `${webBaseUrl}/organizer`,
   ],
   { stdio: "ignore" },
 );
@@ -30,7 +33,7 @@ try {
   const cdp = await connectCdp(page.webSocketDebuggerUrl);
   await cdp.send("Page.enable");
   await cdp.send("Runtime.enable");
-  await cdp.send("Page.navigate", { url: `${baseUrl}/organizer` });
+  await cdp.send("Page.navigate", { url: `${webBaseUrl}/organizer` });
   await waitFor(
     cdp,
     "document.querySelector('#organizer-award-form') !== null",
@@ -45,7 +48,7 @@ try {
   );
   const session = await waitForValue(
     cdp,
-    `fetch("http://localhost:4000/auth/session", { credentials: "include" }).then((response) => response.ok ? response.json() : null).then((payload) => payload?.session ?? null)`,
+    `fetch("${apiBaseUrl}/auth/session", { credentials: "include" }).then((response) => response.ok ? response.json() : null).then((payload) => payload?.session ?? null)`,
     "wallet API session",
   );
   await cdp.eval(
@@ -67,7 +70,7 @@ try {
   );
 
   await cdp.send("Page.navigate", {
-    url: `${baseUrl}${organizerResult.awardPath}`,
+    url: `${webBaseUrl}${organizerResult.awardPath}`,
   });
   await waitFor(
     cdp,
@@ -92,7 +95,7 @@ try {
   );
 
   await cdp.send("Page.navigate", {
-    url: `${baseUrl}${organizerResult.claimPath}`,
+    url: `${webBaseUrl}${organizerResult.claimPath}`,
   });
   await waitFor(
     cdp,
@@ -107,9 +110,7 @@ try {
   );
 
   const awardId = organizerResult.awardPath.split("/").pop();
-  const awardBlock = await fetchJson(
-    `http://localhost:4000/award-blocks/${awardId}`,
-  );
+  const awardBlock = await fetchJson(`${apiBaseUrl}/award-blocks/${awardId}`);
   const transactionTypes = awardBlock.awardBlock.transactions.map(
     (tx) => tx.transactionType,
   );

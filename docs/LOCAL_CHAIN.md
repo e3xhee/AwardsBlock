@@ -61,6 +61,21 @@ VITE_ENABLE_DEV_WALLET=true
 VITE_DEV_WALLET_PRIVATE_KEY=0x...
 ```
 
+After the dev server is running, execute the automated browser flow:
+
+```bash
+corepack pnpm e2e:browser
+```
+
+Optional browser E2E overrides:
+
+```bash
+AWARDBLOCK_CHROME_PATH=C:/Chrome/chrome.exe
+AWARDBLOCK_CDP_PORT=9333
+AWARDBLOCK_WEB_URL=http://localhost:5173
+AWARDBLOCK_API_URL=http://localhost:4000
+```
+
 ## 3. Run the local demo
 
 ```bash
