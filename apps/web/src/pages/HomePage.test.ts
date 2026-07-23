@@ -67,8 +67,26 @@ if (summaries[0]?.verified !== true) {
   throw new Error("Expected verified award block");
 }
 
-if (!renderHomePage().includes("검증 가능한 어워드 아카이브")) {
+const homeHtml = renderHomePage();
+
+if (!homeHtml.includes("검증 가능한 수상 아카이브")) {
   throw new Error("Expected Korean home hero copy");
+}
+
+if (!homeHtml.includes("site-header")) {
+  throw new Error("Expected home page to render a top header");
+}
+
+if (!homeHtml.includes("class=\"site-logo\"") || !homeHtml.includes("AwardBlock")) {
+  throw new Error("Expected top-left AwardBlock logo");
+}
+
+if (!homeHtml.includes("href=\"/login\"") || !homeHtml.includes("로그인")) {
+  throw new Error("Expected top-right login button linking to role login");
+}
+
+if (!homeHtml.includes("award-block-list")) {
+  throw new Error("Expected first page to keep showing award blocks");
 }
 
 const cardHtml = renderAwardBlockCard(summaries[0]!);

@@ -41,17 +41,24 @@ export type AwardBlock = {
 
 export function renderHomePage(): string {
   return `
-    <main class="page-shell">
+    <main class="page-shell home-page">
+      <header class="site-header">
+        <a class="site-logo" href="/" aria-label="AwardBlock 홈">
+          <span class="site-logo__mark">AB</span>
+          <span>AwardBlock</span>
+        </a>
+        <a class="button site-header__login" href="/login">로그인</a>
+      </header>
       <section class="hero-section">
-        <p class="eyebrow">검증 가능한 어워드 아카이브</p>
+        <p class="eyebrow">검증 가능한 수상 아카이브</p>
         <h1>AwardBlock</h1>
-        <p class="hero-copy">공개 어워드 결과, 프로젝트 맥락, ERC-20 클레임 진행률, 검증 메타데이터를 한곳에서 확인하세요.</p>
+        <p class="hero-copy">공개된 행사 수상 결과, 프로젝트 맥락, 리워드 클레임 진행을 한 화면에서 확인하세요.</p>
       </section>
       <section class="section-stack">
         <div class="section-header">
           <div>
             <p class="eyebrow">실시간 데이터</p>
-            <h2>최신 어워드 블록</h2>
+            <h2>최신 수상 블록</h2>
           </div>
           <span class="status-badge">공개</span>
         </div>
@@ -101,8 +108,8 @@ function renderAwardBlockList(awards: AwardBlockSummary[]): string {
   if (awards.length === 0) {
     return `
       <div class="empty-state">
-        <p class="eyebrow">어워드 블록 없음</p>
-        <h2>아직 공개 어워드가 없습니다</h2>
+        <p class="eyebrow">수상 블록 없음</p>
+        <h2>아직 공개된 수상 기록이 없습니다</h2>
       </div>
     `;
   }
@@ -123,7 +130,7 @@ function renderHomeError(): string {
   return `
     <div class="empty-state empty-state--error">
       <p class="eyebrow">로드 실패</p>
-      <h2>어워드 블록을 불러오지 못했습니다</h2>
+      <h2>수상 블록을 불러오지 못했습니다</h2>
     </div>
   `;
 }
