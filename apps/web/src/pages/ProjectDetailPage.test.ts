@@ -1,9 +1,10 @@
 import {
+  getMockProjectDetailFallback,
   mapProjectDetailToViewModel,
   renderProjectDetailPage,
   type ProjectAwardListResponse,
   type ProjectDetailResponse,
-  type ProjectEventResponse
+  type ProjectEventResponse,
 } from "./ProjectDetailPage";
 
 const projectResponse: ProjectDetailResponse = {
@@ -20,8 +21,8 @@ const projectResponse: ProjectDetailResponse = {
     demoUrl: "https://proofboard.example",
     presentationUrl: null,
     createdAt: "2026-07-20T00:00:00.000Z",
-    updatedAt: "2026-07-20T00:00:00.000Z"
-  }
+    updatedAt: "2026-07-20T00:00:00.000Z",
+  },
 };
 
 const eventResponse: ProjectEventResponse = {
@@ -38,8 +39,8 @@ const eventResponse: ProjectEventResponse = {
     socialUrl: null,
     status: "Published",
     createdAt: "2026-07-20T00:00:00.000Z",
-    updatedAt: "2026-07-20T00:00:00.000Z"
-  }
+    updatedAt: "2026-07-20T00:00:00.000Z",
+  },
 };
 
 const awardsResponse: ProjectAwardListResponse = {
@@ -68,15 +69,15 @@ const awardsResponse: ProjectAwardListResponse = {
       finalizeTxHash: null,
       supersededBy: null,
       createdAt: "2026-07-20T00:00:00.000Z",
-      updatedAt: "2026-07-20T00:00:00.000Z"
-    }
-  ]
+      updatedAt: "2026-07-20T00:00:00.000Z",
+    },
+  ],
 };
 
 const viewModel = mapProjectDetailToViewModel(
   projectResponse.project,
   eventResponse.event,
-  awardsResponse.awards
+  awardsResponse.awards,
 );
 
 if (viewModel.name !== "ProofBoard") {
@@ -99,7 +100,9 @@ if (viewModel.awards[0]?.rewardLabel !== "1 mUSDC") {
   throw new Error("Expected formatted award reward");
 }
 
-if (viewModel.awards[0]?.claimWindowLabel !== "2026년 8월 02일 - 2026년 9월 01일") {
+if (
+  viewModel.awards[0]?.claimWindowLabel !== "2026년 8월 02일 - 2026년 9월 01일"
+) {
   throw new Error("Expected formatted award claim window");
 }
 
@@ -117,4 +120,57 @@ if (!renderProjectDetailPage("project-1").includes("프로젝트 상세")) {
 
 if (!renderProjectDetailPage("project-1").includes("project-detail-content")) {
   throw new Error("Expected project detail content mount target");
+}
+
+const uniportFallback = getMockProjectDetailFallback("mock-my-project-uniport");
+const chainfolioFallback = getMockProjectDetailFallback(
+  "mock-my-project-chainfolio",
+);
+
+if (!uniportFallback || !chainfolioFallback) {
+  throw new Error("Expected participant mock project detail fallbacks");
+}
+
+const uniportViewModel = mapProjectDetailToViewModel(
+  uniportFallback.project,
+  uniportFallback.event,
+  uniportFallback.awards,
+);
+const chainfolioViewModel = mapProjectDetailToViewModel(
+  chainfolioFallback.project,
+  chainfolioFallback.event,
+  chainfolioFallback.awards,
+);
+
+if (
+  uniportViewModel.name !== "Uniport" ||
+  uniportViewModel.eventName !== "Seoul Builder Sprint"
+) {
+  throw new Error(
+    "Expected Uniport mock project detail to keep submission context",
+  );
+}
+
+if (
+  chainfolioViewModel.name !== "Chainfolio" ||
+  chainfolioViewModel.eventName !== "Campus Proof Demo Day"
+) {
+  throw new Error(
+    "Expected Chainfolio mock project detail to keep submission context",
+  );
+}
+
+if (
+  uniportViewModel.awards[0]?.href !==
+    "/awards/mock-award-uniport-grand-prize" ||
+  chainfolioViewModel.awards[0]?.href !==
+    "/awards/mock-award-chainfolio-product"
+) {
+  throw new Error(
+    "Expected mock project detail awards to link to mock award details",
+  );
+}
+
+if (getMockProjectDetailFallback("unknown-project") !== null) {
+  throw new Error("Expected unknown project ids not to return fallback data");
 }
