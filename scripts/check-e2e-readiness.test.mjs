@@ -34,7 +34,9 @@ test("checkE2eReadiness passes when root and web env files are synced", async ()
 
     assert.equal(report.ok, true);
     assert.deepEqual(report.errors, []);
-    assert.match(formatReadinessReport(report), /E2E readiness check passed/);
+    const formatted = formatReadinessReport(report);
+    assert.match(formatted, /E2E readiness check passed/);
+    assert.match(formatted, /corepack pnpm e2e:browser/);
   } finally {
     await rm(repoRoot, { recursive: true, force: true });
   }
