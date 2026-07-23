@@ -23,7 +23,7 @@ const demo = {
   organizerWallet: "0xfcad0b19bb29d4674531d6f115237e16afad377c",
   claimedWallet: "0x3333333333333333333333333333333333333333",
   invitedWallet: null,
-  now: "2026-08-01T18:00:00.000Z"
+  now: "2026-08-01T18:00:00.000Z",
 } as const;
 
 export function seedDemoData(database: DatabaseSync): DemoSeedResult {
@@ -51,7 +51,7 @@ export function seedDemoData(database: DatabaseSync): DemoSeedResult {
     invitedMemberId: demo.invitedMemberId,
     claimInviteToken: demo.claimInviteToken,
     organizerWallet: demo.organizerWallet,
-    claimedWallet: demo.claimedWallet
+    claimedWallet: demo.claimedWallet,
   };
 }
 
@@ -84,22 +84,22 @@ function upsertEvent(database: DatabaseSync): void {
         official_url = excluded.official_url,
         social_url = excluded.social_url,
         status = excluded.status,
-        updated_at = excluded.updated_at`
+        updated_at = excluded.updated_at`,
     )
     .run(
       demo.eventId,
       demo.organizerWallet,
-      "Seoul Demo Day",
-      "Demo day for builder award submissions",
+      "De-Buthon 2026",
+      "A Web3 builder competition for DeFi, identity, and public goods projects.",
       "2026-08-01T09:00:00.000Z",
       "2026-08-01T18:00:00.000Z",
-      "Seoul",
+      "Seoul, Korea",
       null,
-      "https://awardblock.example/events/seoul-demo-day",
+      "https://awardblock.example/events/de-buthon-2026",
       "https://x.com/awardblock",
       "Published",
       demo.now,
-      demo.now
+      demo.now,
     );
 }
 
@@ -132,22 +132,22 @@ function upsertProject(database: DatabaseSync): void {
         github_url = excluded.github_url,
         demo_url = excluded.demo_url,
         presentation_url = excluded.presentation_url,
-        updated_at = excluded.updated_at`
+        updated_at = excluded.updated_at`,
     )
     .run(
       demo.projectId,
       demo.eventId,
-      "ProofBoard",
-      "Verifiable award submissions for hackathon teams",
-      "A project that collects team proof and makes award review traceable.",
-      "Judges need consistent context before assigning prize rewards.",
-      "Teams submit canonical project data that awards can reference.",
+      "Uniport",
+      "Unified passport for university builders",
+      "Uniport helps students prove profiles, projects, and builder activity across campuses.",
+      "University builders need portable proof of participation and project history.",
+      "Uniport links wallet identity, project credentials, and award records into one verified profile.",
       null,
-      "https://github.com/example/proofboard",
-      "https://proofboard.example",
+      "https://github.com/example/uniport",
+      "https://uniport.example",
       null,
       demo.now,
-      demo.now
+      demo.now,
     );
 }
 
@@ -202,24 +202,24 @@ function upsertAward(database: DatabaseSync): void {
         fund_tx_hash = excluded.fund_tx_hash,
         finalize_tx_hash = excluded.finalize_tx_hash,
         superseded_by = excluded.superseded_by,
-        updated_at = excluded.updated_at`
+        updated_at = excluded.updated_at`,
     )
     .run(
       demo.awardId,
       demo.eventId,
       demo.projectId,
       demo.organizerWallet,
-      "Best Product",
-      "1st",
-      "The team delivered the clearest user-facing award flow.",
-      "Strong product thinking, complete demo, and pragmatic technical execution.",
+      "Grand Prize",
+      null,
+      "Uniport delivered the strongest end-to-end builder identity and credential flow.",
+      "Clear problem framing, practical Web3 UX, and a demo-ready product loop.",
       "0x2222222222222222222222222222222222222222",
       "mUSDC",
       6,
       "1000000",
       "2026-08-02T00:00:00.000Z",
       "2026-09-01T00:00:00.000Z",
-      "ipfs://awardblock/best-product",
+      "ipfs://awardblock/de-buthon-2026/uniport-grand-prize",
       "0xabc123",
       "contract-award-1",
       "Claiming",
@@ -228,21 +228,22 @@ function upsertAward(database: DatabaseSync): void {
       "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       null,
       demo.now,
-      demo.now
+      demo.now,
     );
 }
 
 function upsertMembers(database: DatabaseSync): void {
   upsertMember(database, {
     id: demo.claimedMemberId,
-    displayName: "Ada Lee",
-    email: "ada@example.com",
+    displayName: "Uniport Team",
+    email: "team@uniport.example",
     walletAddress: demo.claimedWallet,
     allocation: "500000",
     inviteStatus: "Claimed",
     walletConnectedAt: "2026-08-03T00:00:00.000Z",
     claimedAt: "2026-08-04T00:00:00.000Z",
-    claimTxHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    claimTxHash:
+      "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   });
   upsertMember(database, {
     id: demo.invitedMemberId,
@@ -253,7 +254,7 @@ function upsertMembers(database: DatabaseSync): void {
     inviteStatus: "Invited",
     walletConnectedAt: null,
     claimedAt: null,
-    claimTxHash: null
+    claimTxHash: null,
   });
 }
 
@@ -269,7 +270,7 @@ function upsertMember(
     walletConnectedAt: string | null;
     claimedAt: string | null;
     claimTxHash: string | null;
-  }
+  },
 ): void {
   database
     .prepare(
@@ -297,7 +298,7 @@ function upsertMember(
         wallet_connected_at = excluded.wallet_connected_at,
         claimed_at = excluded.claimed_at,
         claim_tx_hash = excluded.claim_tx_hash,
-        updated_at = excluded.updated_at`
+        updated_at = excluded.updated_at`,
     )
     .run(
       member.id,
@@ -311,7 +312,7 @@ function upsertMember(
       member.claimedAt,
       member.claimTxHash,
       demo.now,
-      demo.now
+      demo.now,
     );
 }
 
@@ -331,14 +332,14 @@ function upsertClaimInvite(database: DatabaseSync): void {
         token_hash = excluded.token_hash,
         expires_at = excluded.expires_at,
         used_at = excluded.used_at,
-        created_at = excluded.created_at`
+        created_at = excluded.created_at`,
     )
     .run(
       demo.claimInviteId,
       demo.invitedMemberId,
       hashInviteToken(demo.claimInviteToken),
       "2027-08-15T00:00:00.000Z",
-      demo.now
+      demo.now,
     );
 }
 
@@ -347,33 +348,37 @@ function upsertTransactions(database: DatabaseSync): void {
     id: "transaction-1",
     transactionType: "AwardCreated",
     walletAddress: demo.organizerWallet,
-    txHash: "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    txHash:
+      "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
     blockNumber: 123450,
-    createdAt: "2026-08-02T00:00:00.000Z"
+    createdAt: "2026-08-02T00:00:00.000Z",
   });
   upsertTransaction(database, {
     id: "transaction-2",
     transactionType: "AwardFunded",
     walletAddress: demo.organizerWallet,
-    txHash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    txHash:
+      "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     blockNumber: 123456,
-    createdAt: "2026-08-02T01:00:00.000Z"
+    createdAt: "2026-08-02T01:00:00.000Z",
   });
   upsertTransaction(database, {
     id: "transaction-3",
     transactionType: "AwardFinalized",
     walletAddress: demo.organizerWallet,
-    txHash: "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    txHash:
+      "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
     blockNumber: 123470,
-    createdAt: "2026-08-03T00:00:00.000Z"
+    createdAt: "2026-08-03T00:00:00.000Z",
   });
   upsertTransaction(database, {
     id: "transaction-4",
     transactionType: "AwardClaimed",
     walletAddress: demo.claimedWallet,
-    txHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    txHash:
+      "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     blockNumber: 123500,
-    createdAt: "2026-08-04T00:00:00.000Z"
+    createdAt: "2026-08-04T00:00:00.000Z",
   });
 }
 
@@ -386,7 +391,7 @@ function upsertTransaction(
     txHash: string;
     blockNumber: number;
     createdAt: string;
-  }
+  },
 ): void {
   database
     .prepare(
@@ -405,7 +410,7 @@ function upsertTransaction(
         wallet_address = excluded.wallet_address,
         tx_hash = excluded.tx_hash,
         block_number = excluded.block_number,
-        created_at = excluded.created_at`
+        created_at = excluded.created_at`,
     )
     .run(
       transaction.id,
@@ -414,7 +419,7 @@ function upsertTransaction(
       transaction.walletAddress,
       transaction.txHash,
       transaction.blockNumber,
-      transaction.createdAt
+      transaction.createdAt,
     );
 }
 

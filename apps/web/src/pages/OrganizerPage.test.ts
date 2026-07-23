@@ -64,6 +64,41 @@ if (payloads.award.rewardTokenDecimals !== 6) {
   throw new Error("Expected reward decimals to become a number");
 }
 
+const defaultDraft = getDefaultOrganizerAwardDraft();
+
+if (defaultDraft.eventName !== "De-Buthon 2026") {
+  throw new Error("Expected default event to be De-Buthon 2026");
+}
+
+if (defaultDraft.projectName !== "Uniport") {
+  throw new Error("Expected default project to be Uniport");
+}
+
+if (defaultDraft.awardTitle !== "Grand Prize") {
+  throw new Error("Expected default award to be Grand Prize");
+}
+
+const organizerHtml = renderOrganizerPage();
+
+for (const flowLabel of [
+  "1. 지갑 로그인",
+  "2. 행사 생성",
+  "3. 프로젝트 등록",
+  "4. 수상 기록 생성",
+]) {
+  if (!organizerHtml.includes(flowLabel)) {
+    throw new Error("Expected organizer flow label " + flowLabel);
+  }
+}
+
+if (
+  !organizerHtml.includes("De-Buthon 2026") ||
+  !organizerHtml.includes("Uniport")
+) {
+  throw new Error(
+    "Expected organizer page to expose event and project defaults",
+  );
+}
 if (getDefaultOrganizerAwardDraft().rewardTokenSymbol !== "mUSDC") {
   throw new Error(
     "Expected default organizer reward token to match local MockUSDC",

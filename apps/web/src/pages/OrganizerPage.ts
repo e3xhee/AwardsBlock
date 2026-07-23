@@ -198,34 +198,39 @@ const defaultApi: OrganizerAwardSetupApi = {
 const fallbackMockUsdcAddress = "0x2222222222222222222222222222222222222222";
 
 const baseDefaultDraft: OrganizerAwardDraft = {
-  eventName: "Seoul Demo Day",
-  eventDescription: "Demo day for builder award submissions",
+  eventName: "De-Buthon 2026",
+  eventDescription:
+    "A Web3 builder competition for DeFi, identity, and public goods projects.",
   eventStartDate: "2026-08-01T09:00:00.000Z",
   eventEndDate: "2026-08-01T18:00:00.000Z",
-  eventLocation: "Seoul",
-  eventOfficialUrl: "https://awardblock.example/events/seoul-demo-day",
-  projectName: "ProofBoard",
-  projectTagline: "Verifiable award submissions",
-  projectDescription: "A project that makes award review traceable.",
+  eventLocation: "Seoul, Korea",
+  eventOfficialUrl: "https://awardblock.example/events/de-buthon-2026",
+  projectName: "Uniport",
+  projectTagline: "Unified passport for university builders",
+  projectDescription:
+    "Uniport helps students prove profiles, projects, and builder activity across campuses.",
   projectProblem:
-    "Judges need consistent context before assigning prize rewards.",
-  projectSolution: "Teams submit canonical award proof.",
-  projectGithubUrl: "https://github.com/example/proofboard",
-  projectDemoUrl: "https://proofboard.example",
-  awardTitle: "Best Product",
-  awardRank: "1st",
-  awardReason: "The team delivered the clearest user-facing award flow.",
-  judgingSummary: "Strong product thinking and complete demo.",
+    "University builders need portable proof of participation and project history.",
+  projectSolution:
+    "Uniport links wallet identity, project credentials, and award records into one verified profile.",
+  projectGithubUrl: "https://github.com/example/uniport",
+  projectDemoUrl: "https://uniport.example",
+  awardTitle: "Grand Prize",
+  awardRank: "",
+  awardReason:
+    "Uniport delivered the strongest end-to-end builder identity and credential flow.",
+  judgingSummary:
+    "Clear problem framing, practical Web3 UX, and a demo-ready product loop.",
   rewardTokenAddress: fallbackMockUsdcAddress,
   rewardTokenSymbol: "mUSDC",
   rewardTokenDecimals: "6",
   totalReward: "1000000",
   claimStart: "2026-08-02T00:00:00.000Z",
   claimEnd: "2026-09-01T00:00:00.000Z",
-  metadataUri: "ipfs://awardblock/best-product",
+  metadataUri: "ipfs://awardblock/de-buthon-2026/uniport-grand-prize",
   metadataHash: "0xabc123",
-  recipientName: "Ada Lee",
-  recipientEmail: "ada@example.com",
+  recipientName: "Uniport Team",
+  recipientEmail: "team@uniport.example",
   recipientWalletAddress: "0x3333333333333333333333333333333333333333",
   recipientAllocation: "600000",
   inviteExpiresAt: "2026-08-15T00:00:00.000Z",
@@ -250,6 +255,12 @@ export function renderOrganizerPage(): string {
           <h1>어워드 설정</h1>
           <p>이벤트, 프로젝트, 어워드, 수령자 배정, 클레임 초대, 온체인 등록까지 한 번에 생성합니다.</p>
         </div>
+          <ol class="organizer-flow" aria-label="운영자 생성 흐름">
+            <li><strong>1. 지갑 로그인</strong><span>운영자 지갑 세션을 만듭니다.</span></li>
+            <li><strong>2. 행사 생성</strong><span>De-Buthon 2026 행사 정보를 저장합니다.</span></li>
+            <li><strong>3. 프로젝트 등록</strong><span>Uniport 프로젝트를 행사에 연결합니다.</span></li>
+            <li><strong>4. 수상 기록 생성</strong><span>Grand Prize와 수령자 배정을 온체인에 등록합니다.</span></li>
+          </ol>
         <div class="page-actions">
           <span class="status-badge">초안 플로우</span>
           ${renderWalletConnectButton()}
