@@ -3,6 +3,7 @@ import {
   mergeParticipantEventsWithMockData,
   renderParticipantEventCard,
   renderParticipantProjectList,
+  renderSelectedParticipantEventSummary,
   renderParticipantProjectPage,
   type ParticipantEventSummary,
 } from "./ParticipantProjectPage";
@@ -34,6 +35,11 @@ if (
   !html.includes("내 제출 프로젝트")
 ) {
   throw new Error("Expected participant page to show my submitted projects");
+}
+if (!html.includes('id="participant-selected-event-summary"')) {
+  throw new Error(
+    "Expected participant page to show the currently selected event summary",
+  );
 }
 
 const events: ParticipantEventSummary[] = [
@@ -80,5 +86,36 @@ if (
 ) {
   throw new Error(
     "Expected participant project list to show mock submitted projects",
+  );
+}
+
+const selectedEventSummary = renderSelectedParticipantEventSummary(
+  mergedEvents[0],
+);
+
+if (
+  !selectedEventSummary.includes("선택한 행사") ||
+  !selectedEventSummary.includes("Real Event") ||
+  !selectedEventSummary.includes("제출 마감")
+) {
+  throw new Error(
+    "Expected selected participant event summary to show event context before submitting",
+  );
+}
+
+if (
+  !mockProjects.every((project) => project.eventName && project.submittedAt)
+) {
+  throw new Error(
+    "Expected participant mock projects to include event names and submitted dates",
+  );
+}
+
+if (
+  !projectList.includes("Seoul Builder Sprint") ||
+  !projectList.includes("제출일")
+) {
+  throw new Error(
+    "Expected my submitted project list to show readable event names and submitted dates",
   );
 }

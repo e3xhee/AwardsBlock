@@ -38,7 +38,9 @@ type CreatedProjectResponse = {
 type ParticipantProjectSummary = {
   id: string;
   eventId: string;
+  eventName?: string;
   submitterWallet: string;
+  submittedAt?: string;
   name: string;
   tagline?: string;
   description?: string;
@@ -132,6 +134,9 @@ export function renderParticipantProjectPage(): string {
                 <option value="">행사를 불러오는 중입니다</option>
               </select>
             </label>
+            <div id="participant-selected-event-summary" class="participant-selected-event-summary" aria-live="polite">
+              ${renderSelectedParticipantEventSummary(null)}
+            </div>
           </fieldset>
           <fieldset>
             <legend>프로젝트 정보</legend>
@@ -174,14 +179,25 @@ export function mountParticipantProjectPage(root: ParentNode): void {
     "#participant-event-select",
   );
   const eventList = root.querySelector<HTMLElement>("#participant-event-list");
+  const selectedEventSummary = root.querySelector<HTMLElement>(
+    "#participant-selected-event-summary",
+  );
   const projectList = root.querySelector<HTMLElement>(
     "#participant-my-project-list",
   );
   const result = root.querySelector<HTMLElement>("#participant-project-result");
 
-  if (!form || !eventSelect || !eventList || !projectList || !result) return;
+  if (
+    !form ||
+    !eventSelect ||
+    !eventList ||
+    !selectedEventSummary ||
+    !projectList ||
+    !result
+  )
+    return;
 
-  void loadEvents(eventSelect, eventList);
+  void loadEvents(eventSelect, eventList, selectedEventSummary);
   void loadWalletSession().then((session) => {
     projectList.innerHTML = renderParticipantProjectList(
       getMockParticipantProjects(session?.walletAddress ?? null),
@@ -215,8 +231,10 @@ export function mountParticipantProjectPage(root: ParentNode): void {
         </dl>
         <a class="text-link" href="/projects/${encodeURIComponent(created.project.id)}">프로젝트 보기</a>
       `;
+      const selectedEventName =
+        eventSelect.selectedOptions[0]?.textContent?.trim() || eventId;
       projectList.innerHTML = renderParticipantProjectList([
-        normalizeCreatedProject(created.project),
+        normalizeCreatedProject(created.project, selectedEventName),
         ...getMockParticipantProjects(session?.walletAddress ?? null),
       ]);
     } catch {
@@ -253,7 +271,9 @@ export function getMockParticipantProjects(
     {
       id: "mock-my-project-uniport",
       eventId: "mock-seoul-builder-sprint",
+      eventName: "Seoul Builder Sprint",
       submitterWallet,
+      submittedAt: "2026-08-07T12:30:00.000Z",
       name: "Uniport",
       tagline: "대학생 빌더를 위한 검증 프로필",
       description:
@@ -264,10 +284,12 @@ export function getMockParticipantProjects(
     {
       id: "mock-my-project-chainfolio",
       eventId: "mock-campus-proof-demo-day",
+      eventName: "Campus Proof Demo Day",
       submitterWallet,
+      submittedAt: "2026-08-12T09:00:00.000Z",
       name: "Chainfolio",
       tagline: "캠퍼스 활동을 증명하는 포트폴리오",
-      description: "학습 이력과 해커톤 산출물을 지갑 기반 증명으로 정리합니다.",
+      description: "학습 이력과 해커톤 제출물을 지갑 기반 증명으로 정리합니다.",
       githubUrl: "https://github.com/example/chainfolio",
       demoUrl: "https://chainfolio.example",
     },
@@ -327,6 +349,7 @@ export async function submitParticipantProject(
 async function loadEvents(
   select: HTMLSelectElement,
   eventList: HTMLElement,
+  selectedEventSummary: HTMLElement,
 ): Promise<void> {
   try {
     const response = await apiGet<EventListResponse>("/events");
@@ -334,9 +357,15 @@ async function loadEvents(
       select,
       eventList,
       mergeParticipantEventsWithMockData(response.events),
+      selectedEventSummary,
     );
   } catch {
-    renderEvents(select, eventList, mergeParticipantEventsWithMockData([]));
+    renderEvents(
+      select,
+      eventList,
+      mergeParticipantEventsWithMockData([]),
+      selectedEventSummary,
+    );
   }
 }
 
@@ -344,6 +373,7 @@ function renderEvents(
   select: HTMLSelectElement,
   eventList: HTMLElement,
   events: ParticipantEventSummary[],
+  selectedEventSummary: HTMLElement,
 ): void {
   select.innerHTML = events.length
     ? events
@@ -353,19 +383,37 @@ function renderEvents(
         )
         .join("")
     : `<option value="">참가 가능한 행사가 없습니다</option>`;
+
+  const selectedEvent = events[0] ?? null;
   eventList.innerHTML = events.map(renderParticipantEventCard).join("");
-  bindParticipantEventButtons(select, eventList);
+  selectedEventSummary.innerHTML =
+    renderSelectedParticipantEventSummary(selectedEvent);
+
+  select.addEventListener("change", () => {
+    const event =
+      events.find((candidate) => candidate.id === select.value) ?? null;
+    selectedEventSummary.innerHTML =
+      renderSelectedParticipantEventSummary(event);
+  });
+
+  bindParticipantEventButtons(select, eventList, events, selectedEventSummary);
 }
 
 function bindParticipantEventButtons(
   select: HTMLSelectElement,
   eventList: HTMLElement,
+  events: ParticipantEventSummary[],
+  selectedEventSummary: HTMLElement,
 ): void {
   eventList
     .querySelectorAll<HTMLButtonElement>("[data-participant-event-id]")
     .forEach((button) => {
       button.addEventListener("click", () => {
-        select.value = button.dataset.participantEventId ?? "";
+        const selectedEventId = button.dataset.participantEventId ?? "";
+        select.value = selectedEventId;
+        selectedEventSummary.innerHTML = renderSelectedParticipantEventSummary(
+          events.find((event) => event.id === selectedEventId) ?? null,
+        );
         eventList
           .querySelectorAll(".organizer-event-row--selected")
           .forEach((row) =>
@@ -376,6 +424,34 @@ function bindParticipantEventButtons(
           ?.classList.add("organizer-event-row--selected");
       });
     });
+}
+
+export function renderSelectedParticipantEventSummary(
+  event: ParticipantEventSummary | null,
+): string {
+  if (!event) {
+    return `
+      <div class="participant-selected-event-summary__empty">
+        <p class="eyebrow">선택한 행사</p>
+        <h3>행사를 선택하세요</h3>
+        <p>참가할 행사를 선택하면 제출 마감, 장소, 설명을 확인할 수 있습니다.</p>
+      </div>
+    `;
+  }
+
+  const deadline = event.submissionDeadline ?? event.endDate ?? event.startDate;
+
+  return `
+    <div>
+      <p class="eyebrow">선택한 행사</p>
+      <h3>${escapeHtml(event.name)}</h3>
+      <p>${escapeHtml(event.description ?? "참가 가능한 행사입니다.")}</p>
+      <dl class="organizer-result-list">
+        <div><dt>제출 마감</dt><dd>${escapeHtml(formatDateTimeLabel(deadline))}</dd></div>
+        <div><dt>장소</dt><dd>${escapeHtml(event.location ?? "장소 미정")}</dd></div>
+      </dl>
+    </div>
+  `;
 }
 
 function readProjectPayload(form: HTMLFormElement): ProjectPayload {
@@ -402,7 +478,8 @@ function renderParticipantProject(project: ParticipantProjectSummary): string {
       </div>
       <p>${escapeHtml(project.description ?? "")}</p>
       <dl class="organizer-result-list">
-        <div><dt>행사 ID</dt><dd>${escapeHtml(project.eventId)}</dd></div>
+        <div><dt>행사</dt><dd>${escapeHtml(project.eventName ?? project.eventId)}</dd></div>
+        <div><dt>제출일</dt><dd>${escapeHtml(formatDateTimeLabel(project.submittedAt))}</dd></div>
         <div><dt>제출자 지갑</dt><dd>${escapeHtml(project.submitterWallet)}</dd></div>
         <div><dt>GitHub</dt><dd>${renderProjectLink(project.githubUrl ?? null)}</dd></div>
         <div><dt>데모</dt><dd>${renderProjectLink(project.demoUrl ?? null)}</dd></div>
@@ -414,9 +491,12 @@ function renderParticipantProject(project: ParticipantProjectSummary): string {
 
 function normalizeCreatedProject(
   project: ParticipantProjectSummary,
+  eventName: string,
 ): ParticipantProjectSummary {
   return {
     ...project,
+    eventName: project.eventName ?? eventName,
+    submittedAt: project.submittedAt ?? new Date().toISOString(),
     tagline: project.tagline ?? "방금 제출한 프로젝트",
     description:
       project.description ?? "참가자 지갑으로 저장된 제출 기록입니다.",
