@@ -17,3 +17,7 @@ if (!html.includes("data-role-login=\"participant\"") || !html.includes("참가�
 if (html.includes("href=\"/organizer/events\"") || html.includes("href=\"/participant/projects\"")) {
   throw new Error("Expected role login to authenticate before routing to role pages");
 }
+
+if (html.includes("role-login-status") || html.includes("먼저 역할을 선택하세요")) {
+  throw new Error("Expected role login page not to render the waiting status panel");
+}

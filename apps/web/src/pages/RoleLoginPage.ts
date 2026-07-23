@@ -24,45 +24,32 @@ export function renderRoleLoginPage(): string {
           <button class="button" type="button" data-role-login="participant">참가자로 지갑 연결</button>
         </article>
       </section>
-      <aside id="role-login-status" class="organizer-result" aria-live="polite">
-        <p class="eyebrow">대기 중</p>
-        <h2>먼저 역할을 선택하세요</h2>
-        <p>선택한 역할은 지갑 세션과 함께 저장되고, 로그인 후 각 역할의 첫 화면으로 이동합니다.</p>
-      </aside>
     </main>
   `;
 }
 
 export function mountRoleLoginPage(root: ParentNode): void {
-  const status = root.querySelector<HTMLElement>("#role-login-status");
   const buttons = root.querySelectorAll<HTMLButtonElement>("[data-role-login]");
 
   buttons.forEach((button) => {
+    const initialLabel = button.textContent ?? "지갑 연결";
+
     button.addEventListener("click", async () => {
       const role = button.dataset.roleLogin ?? "";
 
       if (!isLoginRole(role)) return;
 
       setButtonsDisabled(buttons, true);
-      if (status) {
-        status.innerHTML = `
-          <p class="eyebrow">로그인 중</p>
-          <h2>${role === "organizer" ? "등록자" : "참가자"} 지갑 서명 대기 중</h2>
-          <span class="loading-bar"></span>
-        `;
-      }
+      button.textContent = "지갑 서명 대기 중";
 
       try {
         await handleRoleLogin(role);
       } catch {
         setButtonsDisabled(buttons, false);
-        if (status) {
-          status.innerHTML = `
-            <p class="eyebrow">로그인 실패</p>
-            <h2>지갑 로그인을 완료하지 못했습니다</h2>
-            <p>지갑 연결 상태를 확인하고 같은 역할로 다시 시도하세요.</p>
-          `;
-        }
+        button.textContent = "다시 시도";
+        window.setTimeout(() => {
+          button.textContent = initialLabel;
+        }, 1800);
       }
     });
   });
