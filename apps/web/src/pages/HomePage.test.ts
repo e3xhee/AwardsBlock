@@ -100,6 +100,27 @@ if (
     "Expected mock award cards to include project, recipient, and event date details",
   );
 }
+if (
+  new Set(mockSummaries.map((award) => award.href)).size !==
+  mockSummaries.length
+) {
+  throw new Error(
+    "Expected each mock award card to link to a unique detail page",
+  );
+}
+
+if (
+  !mockSummaries.some(
+    (award) => award.href === "/awards/mock-award-chainfolio-product",
+  ) ||
+  !mockSummaries.some(
+    (award) => award.href === "/awards/mock-award-impact-pass",
+  )
+) {
+  throw new Error(
+    "Expected secondary mock award cards to use their own routes",
+  );
+}
 
 const mergedEmpty = mergeAwardBlocksWithMockData([]);
 

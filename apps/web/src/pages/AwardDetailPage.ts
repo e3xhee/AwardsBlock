@@ -255,9 +255,264 @@ const mockUniportAwardBlockDetail: AwardBlockDetail = {
   updatedAt: "2026-08-17T05:30:00.000Z",
 };
 
+const mockChainfolioAwardBlockDetail: AwardBlockDetail = {
+  ...mockUniportAwardBlockDetail,
+  id: "mock-award-chainfolio-product",
+  event: {
+    ...mockUniportAwardBlockDetail.event,
+    id: "event-campus-proof-demo-day",
+    name: "Campus Proof Demo Day",
+    description:
+      "캠퍼스 빌더가 협업 프로젝트와 제출물을 검증 가능한 포트폴리오로 전환하는 데모데이입니다.",
+    startDate: "2026-08-15T09:00:00.000Z",
+    endDate: "2026-08-15T18:00:00.000Z",
+    location: "Busan, Korea",
+    officialUrl: "https://awardblock.example/events/campus-proof-demo-day",
+  },
+  project: {
+    id: "project-chainfolio",
+    name: "Chainfolio",
+    tagline: "캠퍼스 활동과 해커톤 제출물을 증명하는 포트폴리오",
+    description:
+      "Chainfolio는 학생 빌더의 프로젝트, 팀 활동, 수상 이력을 온체인 증명과 연결해 신뢰 가능한 이력서로 보여주는 서비스입니다.",
+    githubUrl: "https://github.com/example/chainfolio",
+    demoUrl: "https://chainfolio.example",
+  },
+  award: {
+    ...mockUniportAwardBlockDetail.award,
+    id: "mock-award-chainfolio-product",
+    title: "Best Product - Chainfolio",
+    rank: null,
+    reason:
+      "참가자 제출물의 맥락과 결과물을 가장 쉽게 검토할 수 있는 제품 흐름을 제시했습니다.",
+    judgingSummary:
+      "팀 활동, 프로젝트 산출물, 검증 링크를 하나의 카드로 묶는 방식이 실사용에 적합했습니다.",
+    status: "Finalized",
+    totalReward: "750000000",
+    metadataUri: "ipfs://awardblock/campus-proof-demo-day/chainfolio-product",
+    metadataHash: "0xawardblock2026chainfoliometadata",
+    contractAwardId: "2",
+    createTxHash:
+      "0x1111111111111111111111111111111111111111111111111111111111111111",
+    fundTxHash:
+      "0x3333333333333333333333333333333333333333333333333333333333333333",
+    finalizeTxHash:
+      "0x4444444444444444444444444444444444444444444444444444444444444444",
+  },
+  members: [
+    {
+      id: "member-chainfolio-team",
+      displayName: "Chainfolio Team",
+      walletAddress: "0x5555555555555555555555555555555555555555",
+      allocation: "450000000",
+      inviteStatus: "WalletConnected",
+      walletConnectedAt: "2026-08-16T02:10:00.000Z",
+      claimedAt: null,
+      claimTxHash: null,
+    },
+    {
+      id: "member-sora-choi",
+      displayName: "Sora Choi",
+      walletAddress: "0x6666666666666666666666666666666666666666",
+      allocation: "300000000",
+      inviteStatus: "Invited",
+      walletConnectedAt: null,
+      claimedAt: null,
+      claimTxHash: null,
+    },
+  ],
+  transactions: [
+    {
+      id: "tx-chainfolio-created",
+      transactionType: "AwardCreated",
+      walletAddress: "0x953500000000000000000000000000000000f6eb",
+      txHash:
+        "0x1111111111111111111111111111111111111111111111111111111111111111",
+      blockNumber: 702001,
+      createdAt: "2026-08-15T11:00:00.000Z",
+    },
+    {
+      id: "tx-chainfolio-recipients",
+      transactionType: "RecipientsSet",
+      walletAddress: "0x953500000000000000000000000000000000f6eb",
+      txHash:
+        "0x2222222222222222222222222222222222222222222222222222222222222222",
+      blockNumber: 702010,
+      createdAt: "2026-08-15T11:15:00.000Z",
+    },
+    {
+      id: "tx-chainfolio-funded",
+      transactionType: "AwardFunded",
+      walletAddress: "0x953500000000000000000000000000000000f6eb",
+      txHash:
+        "0x3333333333333333333333333333333333333333333333333333333333333333",
+      blockNumber: 702020,
+      createdAt: "2026-08-15T11:35:00.000Z",
+    },
+    {
+      id: "tx-chainfolio-finalized",
+      transactionType: "AwardFinalized",
+      walletAddress: "0x953500000000000000000000000000000000f6eb",
+      txHash:
+        "0x4444444444444444444444444444444444444444444444444444444444444444",
+      blockNumber: 702030,
+      createdAt: "2026-08-15T12:00:00.000Z",
+    },
+  ],
+  claimStats: {
+    recipientCount: 2,
+    claimedCount: 0,
+  },
+  createdAt: "2026-08-15T11:00:00.000Z",
+  updatedAt: "2026-08-15T12:00:00.000Z",
+};
+
+const mockImpactPassAwardBlockDetail: AwardBlockDetail = {
+  ...mockUniportAwardBlockDetail,
+  id: "mock-award-impact-pass",
+  event: {
+    ...mockUniportAwardBlockDetail.event,
+    id: "event-public-goods-mini-hack",
+    name: "Public Goods Mini Hack",
+    description:
+      "지역 공공재와 커뮤니티 기여를 기록하는 작은 실험을 빠르게 제출하는 미니 해커톤입니다.",
+    startDate: "2026-08-23T10:00:00.000Z",
+    endDate: "2026-08-24T18:00:00.000Z",
+    location: "Online",
+    officialUrl: "https://awardblock.example/events/public-goods-mini-hack",
+  },
+  project: {
+    id: "project-impact-pass",
+    name: "Impact Pass",
+    tagline: "지역 공공재 기여를 기록하는 체크인 배지",
+    description:
+      "Impact Pass는 기여자가 수행한 지역 공공재 활동을 제출하고, 운영자가 검토한 뒤 배지와 수상 기록으로 남기는 도구입니다.",
+    githubUrl: "https://github.com/example/impact-pass",
+    demoUrl: "https://impact-pass.example",
+  },
+  award: {
+    ...mockUniportAwardBlockDetail.award,
+    id: "mock-award-impact-pass",
+    title: "Impact Award - Impact Pass",
+    rank: null,
+    reason:
+      "작은 커뮤니티 기여를 누구나 확인 가능한 기록으로 남기는 방향성이 행사 목적과 잘 맞았습니다.",
+    judgingSummary:
+      "참가자의 활동 증빙과 운영자의 선정 과정을 간단한 플로우로 정리했습니다.",
+    status: "Funded",
+    totalReward: "500000000",
+    metadataUri: null,
+    metadataHash: null,
+    contractAwardId: null,
+    createTxHash:
+      "0x6161616161616161616161616161616161616161616161616161616161616161",
+    fundTxHash:
+      "0x6363636363636363636363636363636363636363636363636363636363636363",
+    finalizeTxHash: null,
+  },
+  members: [
+    {
+      id: "member-impact-team",
+      displayName: "Impact Pass Team",
+      walletAddress: "0x7777777777777777777777777777777777777777",
+      allocation: "200000000",
+      inviteStatus: "Claimed",
+      walletConnectedAt: "2026-08-25T01:00:00.000Z",
+      claimedAt: "2026-08-25T03:00:00.000Z",
+      claimTxHash:
+        "0x6464646464646464646464646464646464646464646464646464646464646464",
+    },
+    {
+      id: "member-yuna-han",
+      displayName: "Yuna Han",
+      walletAddress: "0x8888888888888888888888888888888888888888",
+      allocation: "150000000",
+      inviteStatus: "Claimed",
+      walletConnectedAt: "2026-08-25T01:10:00.000Z",
+      claimedAt: "2026-08-25T03:15:00.000Z",
+      claimTxHash:
+        "0x6565656565656565656565656565656565656565656565656565656565656565",
+    },
+    {
+      id: "member-dohyun-park",
+      displayName: "Dohyun Park",
+      walletAddress: "0x9999999999999999999999999999999999999999",
+      allocation: "100000000",
+      inviteStatus: "WalletConnected",
+      walletConnectedAt: "2026-08-25T01:20:00.000Z",
+      claimedAt: null,
+      claimTxHash: null,
+    },
+    {
+      id: "member-noah-kang",
+      displayName: "Noah Kang",
+      walletAddress: null,
+      allocation: "50000000",
+      inviteStatus: "Pending",
+      walletConnectedAt: null,
+      claimedAt: null,
+      claimTxHash: null,
+    },
+  ],
+  transactions: [
+    {
+      id: "tx-impact-created",
+      transactionType: "AwardCreated",
+      walletAddress: "0x953500000000000000000000000000000000f6eb",
+      txHash:
+        "0x6161616161616161616161616161616161616161616161616161616161616161",
+      blockNumber: 703001,
+      createdAt: "2026-08-24T10:00:00.000Z",
+    },
+    {
+      id: "tx-impact-recipients",
+      transactionType: "RecipientsSet",
+      walletAddress: "0x953500000000000000000000000000000000f6eb",
+      txHash:
+        "0x6262626262626262626262626262626262626262626262626262626262626262",
+      blockNumber: 703011,
+      createdAt: "2026-08-24T10:20:00.000Z",
+    },
+    {
+      id: "tx-impact-funded",
+      transactionType: "AwardFunded",
+      walletAddress: "0x953500000000000000000000000000000000f6eb",
+      txHash:
+        "0x6363636363636363636363636363636363636363636363636363636363636363",
+      blockNumber: 703020,
+      createdAt: "2026-08-24T10:40:00.000Z",
+    },
+    {
+      id: "tx-impact-claimed-1",
+      transactionType: "AwardClaimed",
+      walletAddress: "0x7777777777777777777777777777777777777777",
+      txHash:
+        "0x6464646464646464646464646464646464646464646464646464646464646464",
+      blockNumber: 703120,
+      createdAt: "2026-08-25T03:00:00.000Z",
+    },
+    {
+      id: "tx-impact-claimed-2",
+      transactionType: "AwardClaimed",
+      walletAddress: "0x8888888888888888888888888888888888888888",
+      txHash:
+        "0x6565656565656565656565656565656565656565656565656565656565656565",
+      blockNumber: 703125,
+      createdAt: "2026-08-25T03:15:00.000Z",
+    },
+  ],
+  claimStats: {
+    recipientCount: 4,
+    claimedCount: 2,
+  },
+  createdAt: "2026-08-24T10:00:00.000Z",
+  updatedAt: "2026-08-25T03:15:00.000Z",
+};
 const mockAwardBlockDetails: Record<string, AwardBlockDetail> = {
   "award-1": mockUniportAwardBlockDetail,
   "mock-award-uniport-grand-prize": mockUniportAwardBlockDetail,
+  "mock-award-chainfolio-product": mockChainfolioAwardBlockDetail,
+  "mock-award-impact-pass": mockImpactPassAwardBlockDetail,
 };
 
 export function getMockAwardBlockDetail(

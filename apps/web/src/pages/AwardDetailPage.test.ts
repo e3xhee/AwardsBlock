@@ -251,3 +251,42 @@ if (!mockAwardHtml.includes("0xawardblock2026uniportmetadata")) {
 if (getMockAwardBlockDetail("unknown-award") !== null) {
   throw new Error("Expected unknown award ids not to return mock detail");
 }
+const chainfolioAwardDetail = getMockAwardBlockDetail(
+  "mock-award-chainfolio-product",
+);
+const impactPassAwardDetail = getMockAwardBlockDetail("mock-award-impact-pass");
+
+if (!chainfolioAwardDetail || !impactPassAwardDetail) {
+  throw new Error(
+    "Expected every home mock award route to have detail fallback",
+  );
+}
+
+const chainfolioAwardViewModel = mapAwardBlockDetailToViewModel(
+  chainfolioAwardDetail,
+);
+const impactPassAwardViewModel = mapAwardBlockDetailToViewModel(
+  impactPassAwardDetail,
+);
+
+if (
+  chainfolioAwardViewModel.projectName !== "Chainfolio" ||
+  chainfolioAwardViewModel.eventName !== "Campus Proof Demo Day"
+) {
+  throw new Error("Expected Chainfolio mock route to render Chainfolio detail");
+}
+
+if (
+  impactPassAwardViewModel.projectName !== "Impact Pass" ||
+  impactPassAwardViewModel.eventName !== "Public Goods Mini Hack"
+) {
+  throw new Error(
+    "Expected Impact Pass mock route to render Impact Pass detail",
+  );
+}
+
+if (impactPassAwardDetail.award.metadataHash !== null) {
+  throw new Error(
+    "Expected unverified Impact Pass mock detail to stay pending",
+  );
+}

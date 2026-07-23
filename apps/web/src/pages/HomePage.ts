@@ -53,7 +53,7 @@ const mockAwardBlockSummaries: AwardBlockSummary[] = [
     claimProgress: "1/3 클레임 완료",
     statusLabel: "검증 완료",
     verified: true,
-    href: "/awards/award-1",
+    href: "/awards/mock-award-uniport-grand-prize",
   },
   {
     id: "mock-award-chainfolio-product",
@@ -68,7 +68,7 @@ const mockAwardBlockSummaries: AwardBlockSummary[] = [
     claimProgress: "0/2 클레임 완료",
     statusLabel: "검증 완료",
     verified: true,
-    href: "/awards/award-1",
+    href: "/awards/mock-award-chainfolio-product",
   },
   {
     id: "mock-award-impact-pass",
@@ -83,7 +83,7 @@ const mockAwardBlockSummaries: AwardBlockSummary[] = [
     claimProgress: "2/4 클레임 완료",
     statusLabel: "검증 대기",
     verified: false,
-    href: "/awards/award-1",
+    href: "/awards/mock-award-impact-pass",
   },
 ];
 
