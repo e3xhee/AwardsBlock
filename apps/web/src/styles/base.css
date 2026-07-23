@@ -1216,3 +1216,33 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+.participant-workspace-grid,
+.participant-submission-grid {
+  display: grid;
+  align-items: start;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.9fr);
+}
+
+.participant-event-panel {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.participant-event-list {
+  display: grid;
+  gap: 12px;
+}
+
+.participant-my-projects {
+  border-top: 0;
+  padding-top: 0;
+}
+
+@media (max-width: 720px) {
+  .participant-workspace-grid,
+  .participant-submission-grid {
+    grid-template-columns: 1fr;
+  }
+}
