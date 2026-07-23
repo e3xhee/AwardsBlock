@@ -54,6 +54,13 @@ Before running the browser flow, check that the root and web env files are synce
 corepack pnpm check:e2e
 ```
 
+For browser-only local E2E without a wallet extension, enable the dev wallet in `apps/web/.env.local`. Use only an Anvil or test private key.
+
+```env
+VITE_ENABLE_DEV_WALLET=true
+VITE_DEV_WALLET_PRIVATE_KEY=0x...
+```
+
 ## 3. Run the local demo
 
 ```bash

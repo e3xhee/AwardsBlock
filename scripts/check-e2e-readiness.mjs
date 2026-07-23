@@ -76,6 +76,14 @@ export function checkE2eReadiness({ repoRoot = defaultRepoRoot } = {}) {
     validateAddress(combinedEnv[key], key, errors);
   }
 
+  if (webEnv.values.VITE_ENABLE_DEV_WALLET === "true") {
+    validatePrivateKey(
+      webEnv.values.VITE_DEV_WALLET_PRIVATE_KEY,
+      "VITE_DEV_WALLET_PRIVATE_KEY",
+      errors,
+    );
+  }
+
   for (const [rootKey, webKey] of matchingEnvPairs) {
     const rootValue = rootEnv.values[rootKey];
     const webValue = webEnv.values[webKey];
@@ -183,6 +191,14 @@ function validateAddress(value, key, errors) {
 
   if (!/^0x[a-fA-F0-9]{40}$/.test(value)) {
     errors.push(`${key} must be an EVM address.`);
+  }
+}
+
+function validatePrivateKey(value, key, errors) {
+  if (!/^0x[a-fA-F0-9]{64}$/.test(value ?? "")) {
+    errors.push(
+      `${key} must be a hex private key when VITE_ENABLE_DEV_WALLET=true.`,
+    );
   }
 }
 

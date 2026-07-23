@@ -167,7 +167,10 @@ export function mapClaimInviteToViewModel(
     walletLabel: walletAddress ? shortenAddress(walletAddress) : "미연결",
     expiresAtLabel: formatDateLabel(invite.expiresAt),
     canConnectWallet: walletAddress === null && inviteStatus !== "Claimed",
-    canClaim: walletAddress !== null && inviteStatus === "WalletConnected",
+    canClaim:
+      walletAddress !== null &&
+      inviteStatus !== "Claimed" &&
+      inviteStatus !== "Revoked",
     isClaimed: inviteStatus === "Claimed" || claimTxHash !== null,
     claimTxLabel: claimTxHash ? shortenAddress(claimTxHash) : "기록 없음",
     claimTxUrl: buildTransactionExplorerUrl(

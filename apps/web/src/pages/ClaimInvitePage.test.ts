@@ -149,6 +149,33 @@ if (connectedViewModel.canClaim !== true) {
   throw new Error("Expected connected member to be claim-ready");
 }
 
+const preassignedAwardBlock: AwardBlockDetail = {
+  ...awardBlock,
+  members: [
+    {
+      ...awardBlock.members[0]!,
+      walletAddress: "0x3333333333333333333333333333333333333333",
+      inviteStatus: "Pending",
+    },
+  ],
+};
+
+const preassignedViewModel = mapClaimInviteToViewModel(
+  {
+    ...inviteResponse.invite,
+    member: {
+      ...inviteResponse.invite.member,
+      walletAddress: "0x3333333333333333333333333333333333333333",
+      inviteStatus: "Pending",
+    },
+  },
+  preassignedAwardBlock,
+);
+
+if (preassignedViewModel.canClaim !== true) {
+  throw new Error("Expected preassigned recipient wallet to be claim-ready");
+}
+
 const claimedAwardBlock: AwardBlockDetail = {
   ...awardBlock,
   members: [

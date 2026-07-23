@@ -89,6 +89,38 @@ test("checkE2eReadiness reports mismatched deployment values", async () => {
   }
 });
 
+test("checkE2eReadiness validates optional dev wallet private key", async () => {
+  const repoRoot = await createRepoEnv({
+    rootEnv: [
+      "CHAIN_ID=31337",
+      "RPC_URL=http://127.0.0.1:8545",
+      `REGISTRY_CONTRACT_ADDRESS=${validAddressA}`,
+      `MOCK_USDC_ADDRESS=${validAddressB}`,
+    ],
+    webEnv: [
+      "VITE_API_BASE_URL=http://localhost:4000",
+      "VITE_CHAIN_ID=31337",
+      "VITE_RPC_URL=http://127.0.0.1:8545",
+      `VITE_REGISTRY_CONTRACT_ADDRESS=${validAddressA}`,
+      `VITE_MOCK_USDC_ADDRESS=${validAddressB}`,
+      "VITE_ENABLE_DEV_WALLET=true",
+      "VITE_DEV_WALLET_PRIVATE_KEY=not-a-private-key",
+    ],
+  });
+
+  try {
+    const report = checkE2eReadiness({ repoRoot });
+
+    assert.equal(report.ok, false);
+    assert.match(
+      formatReadinessReport(report),
+      /VITE_DEV_WALLET_PRIVATE_KEY must be a hex private key/,
+    );
+  } finally {
+    await rm(repoRoot, { recursive: true, force: true });
+  }
+});
+
 async function createRepoEnv({ rootEnv, webEnv }) {
   const repoRoot = await mkdtemp(join(tmpdir(), "awardblock-e2e-"));
   const webRoot = join(repoRoot, "apps", "web");

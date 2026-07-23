@@ -1,5 +1,11 @@
 import { apiGet, apiPost } from "../api/client";
 import { walletState } from "../state/appState";
+import {
+  getDevEthereumProviderFromEnv,
+  type DevWalletEnv,
+} from "./devWalletProvider";
+
+const viteEnv = import.meta.env ?? {};
 
 export type EthereumProvider = {
   request<TResponse = unknown>(request: {
@@ -9,7 +15,10 @@ export type EthereumProvider = {
 };
 
 export type AuthApi = {
-  post<TResponse, TBody = unknown>(path: string, body?: TBody): Promise<TResponse>;
+  post<TResponse, TBody = unknown>(
+    path: string,
+    body?: TBody,
+  ): Promise<TResponse>;
 };
 
 type AuthNonceResponse = {
@@ -31,30 +40,35 @@ export type WalletSession = {
 };
 
 const defaultAuthApi: AuthApi = {
-  post: apiPost
+  post: apiPost,
 };
 
 export async function authenticateWallet(
   provider = getBrowserEthereumProvider(),
-  authApi = defaultAuthApi
+  authApi = defaultAuthApi,
 ): Promise<WalletSession> {
   if (!provider) {
     throw new Error("WALLET_PROVIDER_UNAVAILABLE");
   }
 
-  const accounts = await provider.request<string[]>({ method: "eth_requestAccounts" });
+  const accounts = await provider.request<string[]>({
+    method: "eth_requestAccounts",
+  });
   const walletAddress = accounts[0];
 
   if (!walletAddress) {
     throw new Error("WALLET_ACCOUNT_UNAVAILABLE");
   }
 
-  const nonce = await authApi.post<AuthNonceResponse, { walletAddress: string }>("/auth/nonce", {
-    walletAddress
+  const nonce = await authApi.post<
+    AuthNonceResponse,
+    { walletAddress: string }
+  >("/auth/nonce", {
+    walletAddress,
   });
   const signature = await provider.request<string>({
     method: "personal_sign",
-    params: [nonce.nonce.message, nonce.nonce.walletAddress]
+    params: [nonce.nonce.message, nonce.nonce.walletAddress],
   });
   const session = await authApi.post<
     AuthSessionResponse,
@@ -66,7 +80,7 @@ export async function authenticateWallet(
   >("/auth/session", {
     walletAddress: nonce.nonce.walletAddress,
     nonce: nonce.nonce.nonce,
-    signature
+    signature,
   });
 
   walletState.address = session.session.walletAddress;
@@ -89,7 +103,7 @@ export async function loadWalletSession(): Promise<WalletSession | null> {
 
 export function getBrowserEthereumProvider(): EthereumProvider | null {
   const ethereum = (globalThis as { ethereum?: EthereumProvider }).ethereum;
-  return ethereum ?? null;
+  return ethereum ?? getDevEthereumProviderFromEnv(viteEnv as DevWalletEnv);
 }
 
 async function readChainId(provider: EthereumProvider): Promise<number | null> {
