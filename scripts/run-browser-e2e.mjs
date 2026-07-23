@@ -34,18 +34,7 @@ try {
   await cdp.send("Page.enable");
   await cdp.send("Runtime.enable");
 
-  await cdp.send("Page.navigate", { url: `${webBaseUrl}/login` });
-  await waitFor(
-    cdp,
-    "document.querySelector('.role-login-page') !== null",
-    "role login page",
-  );
-  await cdp.eval(`document.querySelector('[data-wallet-connect]').click()`);
-  await waitFor(
-    cdp,
-    "document.querySelector('[data-wallet-status]')?.textContent.includes('0x')",
-    "wallet session",
-  );
+  await loginAsRole(cdp, "organizer", ".organizer-dashboard-page");
   const session = await waitForValue(
     cdp,
     `fetch("${apiBaseUrl}/auth/session", { credentials: "include" }).then((response) => response.ok ? response.json() : null).then((payload) => payload?.session ?? null)`,
@@ -70,6 +59,7 @@ try {
     "event creation success",
   );
 
+  await loginAsRole(cdp, "participant", ".participant-dashboard-page");
   await cdp.send("Page.navigate", { url: `${webBaseUrl}/participant/projects` });
   await waitFor(
     cdp,
@@ -96,6 +86,7 @@ try {
     "project submission success",
   );
 
+  await loginAsRole(cdp, "organizer", ".organizer-dashboard-page");
   await cdp.send("Page.navigate", { url: `${webBaseUrl}/organizer/winners` });
   await waitFor(
     cdp,
@@ -176,6 +167,21 @@ try {
   chrome.kill();
   await rm(userDataDir, { recursive: true, force: true }).catch(
     () => undefined,
+  );
+}
+
+async function loginAsRole(cdp, role, dashboardSelector) {
+  await cdp.send("Page.navigate", { url: `${webBaseUrl}/login` });
+  await waitFor(
+    cdp,
+    "document.querySelector('.role-login-page') !== null",
+    `${role} role login page`,
+  );
+  await cdp.eval(`document.querySelector('[data-role-login="${role}"]').click()`);
+  await waitFor(
+    cdp,
+    `document.querySelector('${dashboardSelector}') !== null`,
+    `${role} dashboard after role login`,
   );
 }
 

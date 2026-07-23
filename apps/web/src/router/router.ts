@@ -5,6 +5,7 @@ import { renderHomePage } from "../pages/HomePage";
 import { renderOrganizerDashboardPage } from "../pages/OrganizerDashboardPage";
 import { renderOrganizerEventPage } from "../pages/OrganizerEventPage";
 import { renderOrganizerWinnerPage } from "../pages/OrganizerWinnerPage";
+import { renderParticipantDashboardPage } from "../pages/ParticipantDashboardPage";
 import { renderParticipantProjectPage } from "../pages/ParticipantProjectPage";
 import { renderProfilePage } from "../pages/ProfilePage";
 import { renderProjectDetailPage } from "../pages/ProjectDetailPage";
@@ -20,9 +21,8 @@ export function renderRoute(pathname: string): string {
   if (pathname === "/organizer") return renderOrganizerDashboardPage();
   if (pathname === "/organizer/events") return renderOrganizerEventPage();
   if (pathname === "/organizer/winners") return renderOrganizerWinnerPage();
-  if (pathname === "/participant" || pathname === "/participant/projects") {
-    return renderParticipantProjectPage();
-  }
+  if (pathname === "/participant") return renderParticipantDashboardPage();
+  if (pathname === "/participant/projects") return renderParticipantProjectPage();
   return renderHomePage();
 }
 

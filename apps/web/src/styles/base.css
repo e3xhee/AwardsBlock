@@ -1057,6 +1057,7 @@ body {
 .role-login-page,
 .organizer-dashboard-page,
 .organizer-event-page,
+.participant-dashboard-page,
 .participant-project-page,
 .organizer-winner-page {
   display: grid;

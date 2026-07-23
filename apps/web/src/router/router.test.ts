@@ -40,8 +40,8 @@ if (
 
 const loginRouteHtml = renderRoute("/login");
 
-if (!loginRouteHtml.includes("role-login-page") || !loginRouteHtml.includes("등록자로 로그인")) {
-  throw new Error("Expected role login route to render organizer and participant choices");
+if (!loginRouteHtml.includes("role-login-page") || !loginRouteHtml.includes("등록자로 지갑 연결")) {
+  throw new Error("Expected role login route to render organizer and participant wallet login choices");
 }
 
 const organizerEventRouteHtml = renderRoute("/organizer/events");
@@ -69,4 +69,12 @@ if (
   !organizerWinnerRouteHtml.includes("우승자 선택")
 ) {
   throw new Error("Expected organizer winner route to render winner selection flow");
+}
+const participantDashboardRouteHtml = renderRoute("/participant");
+
+if (
+  !participantDashboardRouteHtml.includes("participant-dashboard-page") ||
+  !participantDashboardRouteHtml.includes("참가자 대시보드")
+) {
+  throw new Error("Expected participant route to render a participant dashboard separate from submission");
 }

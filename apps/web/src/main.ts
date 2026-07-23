@@ -6,6 +6,7 @@ import { mountHomePage } from "./pages/HomePage";
 import { mountOrganizerDashboardPage } from "./pages/OrganizerDashboardPage";
 import { mountOrganizerEventPage } from "./pages/OrganizerEventPage";
 import { mountOrganizerWinnerPage } from "./pages/OrganizerWinnerPage";
+import { mountParticipantDashboardPage } from "./pages/ParticipantDashboardPage";
 import { mountParticipantProjectPage } from "./pages/ParticipantProjectPage";
 import { mountProfilePage } from "./pages/ProfilePage";
 import { mountProjectDetailPage } from "./pages/ProjectDetailPage";
@@ -85,7 +86,12 @@ async function mountRoute(root: ParentNode, pathname: string): Promise<void> {
     return;
   }
 
-  if (pathname === "/participant" || pathname === "/participant/projects") {
+  if (pathname === "/participant") {
+    mountParticipantDashboardPage(root);
+    return;
+  }
+
+  if (pathname === "/participant/projects") {
     mountParticipantProjectPage(root);
     return;
   }
