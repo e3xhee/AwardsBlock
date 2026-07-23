@@ -1,8 +1,9 @@
 import {
+  getMockEventDetailFallback,
   mapEventDetailToViewModel,
   renderEventDetailPage,
   type EventDetailResponse,
-  type EventProjectListResponse
+  type EventProjectListResponse,
 } from "./EventDetailPage";
 
 const eventResponse: EventDetailResponse = {
@@ -19,8 +20,8 @@ const eventResponse: EventDetailResponse = {
     socialUrl: null,
     status: "Published",
     createdAt: "2026-07-20T00:00:00.000Z",
-    updatedAt: "2026-07-20T00:00:00.000Z"
-  }
+    updatedAt: "2026-07-20T00:00:00.000Z",
+  },
 };
 
 const projectsResponse: EventProjectListResponse = {
@@ -38,12 +39,15 @@ const projectsResponse: EventProjectListResponse = {
       demoUrl: "https://proofboard.example",
       presentationUrl: null,
       createdAt: "2026-07-20T00:00:00.000Z",
-      updatedAt: "2026-07-20T00:00:00.000Z"
-    }
-  ]
+      updatedAt: "2026-07-20T00:00:00.000Z",
+    },
+  ],
 };
 
-const viewModel = mapEventDetailToViewModel(eventResponse.event, projectsResponse.projects);
+const viewModel = mapEventDetailToViewModel(
+  eventResponse.event,
+  projectsResponse.projects,
+);
 
 if (viewModel.name !== "Seoul Demo Day") {
   throw new Error("Expected event name");
@@ -75,4 +79,44 @@ if (!renderEventDetailPage("event-1").includes("이벤트 상세")) {
 
 if (!renderEventDetailPage("event-1").includes("event-detail-content")) {
   throw new Error("Expected event detail content mount target");
+}
+
+const seoulFallback = getMockEventDetailFallback("mock-seoul-builder-sprint");
+const campusFallback = getMockEventDetailFallback("mock-campus-proof-demo-day");
+
+if (!seoulFallback || !campusFallback) {
+  throw new Error(
+    "Expected mock event detail fallbacks for project event links",
+  );
+}
+
+const seoulViewModel = mapEventDetailToViewModel(
+  seoulFallback.event,
+  seoulFallback.projects,
+);
+const campusViewModel = mapEventDetailToViewModel(
+  campusFallback.event,
+  campusFallback.projects,
+);
+
+if (
+  seoulViewModel.name !== "Seoul Builder Sprint" ||
+  seoulViewModel.projects[0]?.href !== "/projects/mock-my-project-uniport"
+) {
+  throw new Error(
+    "Expected Seoul mock event to link back to Uniport project detail",
+  );
+}
+
+if (
+  campusViewModel.name !== "Campus Proof Demo Day" ||
+  campusViewModel.projects[0]?.href !== "/projects/mock-my-project-chainfolio"
+) {
+  throw new Error(
+    "Expected Campus mock event to link back to Chainfolio project detail",
+  );
+}
+
+if (getMockEventDetailFallback("unknown-event") !== null) {
+  throw new Error("Expected unknown event ids not to return fallback data");
 }
