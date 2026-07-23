@@ -1,5 +1,6 @@
 import {
   mapProfileToViewModel,
+  renderProfileContent,
   renderProfilePage,
   type WalletProfileResponse,
 } from "./ProfilePage";
@@ -107,4 +108,14 @@ if (
 
 if (!renderProfilePage(profile.walletAddress).includes("지갑 프로필")) {
   throw new Error("Expected Korean profile page title");
+}
+
+const profileHtml = renderProfileContent(viewModel);
+
+if (!profileHtml.includes("\ud074\ub808\uc784 \ud2b8\ub79c\uc7ad\uc158")) {
+  throw new Error("Expected profile claim transaction label to be Korean");
+}
+
+if (profileHtml.includes("\ud074\ub808\uc784 tx")) {
+  throw new Error("Expected profile not to expose abbreviated tx label");
 }

@@ -329,7 +329,7 @@ function renderInteractiveClaimInvite(
   });
 }
 
-function renderClaimInviteContent(invite: ClaimInviteViewModel): string {
+export function renderClaimInviteContent(invite: ClaimInviteViewModel): string {
   return `
     <section class="claim-summary">
       <div>
@@ -343,7 +343,7 @@ function renderClaimInviteContent(invite: ClaimInviteViewModel): string {
       ${renderClaimMetric("배정 수량", invite.allocationLabel)}
       ${renderClaimMetric("지갑", invite.walletLabel)}
       ${renderClaimMetric("만료일", invite.expiresAtLabel)}
-      ${renderClaimMetric("클레임 tx", invite.claimTxLabel, invite.claimTxUrl)}
+      ${renderClaimMetric("클레임 트랜잭션", invite.claimTxLabel, invite.claimTxUrl)}
     </div>
     <section class="detail-section">
       <h2>수신자 작업</h2>
@@ -386,7 +386,7 @@ function renderClaimActions(invite: ClaimInviteViewModel): string {
   if (invite.canClaim) {
     return `
       <form class="claim-action-panel" data-claim-form>
-        <p>지갑에서 claim 트랜잭션을 승인하면 tx hash가 자동으로 저장됩니다.</p>
+        <p>지갑에서 클레임 트랜잭션을 승인하면 트랜잭션 해시가 자동으로 저장됩니다.</p>
         <button class="button" type="submit">리워드 클레임 실행</button>
       </form>
     `;

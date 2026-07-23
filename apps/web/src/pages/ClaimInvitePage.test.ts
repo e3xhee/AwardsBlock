@@ -2,6 +2,7 @@ import type { AwardBlockDetail } from "./AwardDetailPage";
 import {
   executeClaimInviteAction,
   mapClaimInviteToViewModel,
+  renderClaimInviteContent,
   renderClaimInvitePage,
   type ClaimInviteActionApi,
   type ClaimInviteLookupResponse,
@@ -316,4 +317,32 @@ if (
   })
 ) {
   throw new Error("Expected AwardClaimed transaction record");
+}
+
+const connectedClaimHtml = renderClaimInviteContent(connectedViewModel);
+
+if (
+  !connectedClaimHtml.includes("\ud074\ub808\uc784 \ud2b8\ub79c\uc7ad\uc158")
+) {
+  throw new Error("Expected claim invite transaction label to be Korean");
+}
+
+if (
+  !connectedClaimHtml.includes(
+    "\ud2b8\ub79c\uc7ad\uc158 \ud574\uc2dc\uac00 \uc790\ub3d9\uc73c\ub85c \uc800\uc7a5",
+  )
+) {
+  throw new Error(
+    "Expected claim invite guidance to use Korean transaction hash copy",
+  );
+}
+
+for (const englishCopy of [
+  "\ud074\ub808\uc784 tx",
+  "claim \ud2b8\ub79c\uc7ad\uc158",
+  "tx hash",
+]) {
+  if (connectedClaimHtml.includes(englishCopy)) {
+    throw new Error("Expected claim invite not to include " + englishCopy);
+  }
 }

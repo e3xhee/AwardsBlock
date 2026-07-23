@@ -179,7 +179,7 @@ export function mapProfileToViewModel(
   };
 }
 
-function renderProfileContent(profile: WalletProfileViewModel): string {
+export function renderProfileContent(profile: WalletProfileViewModel): string {
   if (profile.awards.length === 0) {
     return `
       <div class="empty-state">
@@ -225,7 +225,7 @@ function renderProfileAward(
         <div><dt>수신자</dt><dd>${escapeHtml(award.recipientName)}</dd></div>
         <div><dt>리워드</dt><dd>${escapeHtml(award.rewardLabel)}</dd></div>
         <div><dt>클레임일</dt><dd>${escapeHtml(award.claimedAtLabel)}</dd></div>
-        <div><dt>클레임 tx</dt><dd>${renderProfileTxHash(award.claimTransactionLabel, award.claimTransactionUrl)}</dd></div>
+        <div><dt>클레임 트랜잭션</dt><dd>${renderProfileTxHash(award.claimTransactionLabel, award.claimTransactionUrl)}</dd></div>
       </dl>
       ${renderClaimTransactions(award.claimTransactions)}
     </article>

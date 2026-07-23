@@ -3,7 +3,7 @@ import {
   renderAwardOnchainActions,
   resolveAwardOnchainFromAddress,
   type AwardOnchainActionApi,
-  type OnchainAward
+  type OnchainAward,
 } from "./AwardOnchainActions";
 import type { ContractWriteProvider } from "../blockchain/awardRegistry";
 
@@ -12,7 +12,7 @@ const award: OnchainAward = {
   contractAwardId: "award-1",
   rewardTokenAddress: "0x2222222222222222222222222222222222222222",
   totalReward: "1000000",
-  status: "ReadyToFund"
+  status: "ReadyToFund",
 };
 
 const html = renderAwardOnchainActions(award);
@@ -35,17 +35,25 @@ if (!html.includes("리워드 예치")) {
 
 if (
   !renderAwardOnchainActions({ ...award, status: "Funded" }).includes(
-    'data-onchain-action="finalize"'
+    'data-onchain-action="finalize"',
   )
 ) {
   throw new Error("Expected finalize action for funded awards");
 }
 
-if (!renderAwardOnchainActions({ ...award, status: "Funded" }).includes("어워드 확정")) {
+if (
+  !renderAwardOnchainActions({ ...award, status: "Funded" }).includes(
+    "어워드 확정",
+  )
+) {
   throw new Error("Expected Korean finalize action label");
 }
 
-if (renderAwardOnchainActions({ ...award, contractAwardId: null }).includes('data-onchain-action="')) {
+if (
+  renderAwardOnchainActions({ ...award, contractAwardId: null }).includes(
+    'data-onchain-action="',
+  )
+) {
   throw new Error("Expected missing contract award id to suppress actions");
 }
 
@@ -53,7 +61,7 @@ const providerRequests: Array<{ method: string; params?: unknown }> = [];
 const provider: ContractWriteProvider = {
   async request<TResponse = unknown>({
     method,
-    params
+    params,
   }: {
     method: string;
     params?: unknown[] | Record<string, unknown>;
@@ -65,7 +73,7 @@ const provider: ContractWriteProvider = {
     }
 
     return "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" as TResponse;
-  }
+  },
 };
 
 const posts: Array<{ path: string; body: unknown }> = [];
@@ -78,7 +86,7 @@ const api: AwardOnchainActionApi = {
   async patch<TResponse, TBody = unknown>(path: string, body?: TBody) {
     patches.push({ path, body });
     return { award: { id: "award-1" } } as TResponse;
-  }
+  },
 };
 
 const result = await executeAwardOnchainAction({
@@ -87,12 +95,12 @@ const result = await executeAwardOnchainAction({
   from: "0x0123456789abcdef0123456789abcdef01234567",
   registryAddress: "0x1111111111111111111111111111111111111111",
   provider,
-  api
+  api,
 });
 
 const restoredFrom = await resolveAwardOnchainFromAddress(null, async () => ({
   walletAddress: "0x9999999999999999999999999999999999999999",
-  expiresAt: "2026-08-01T00:00:00.000Z"
+  expiresAt: "2026-08-01T00:00:00.000Z",
 }));
 
 if (restoredFrom !== "0x9999999999999999999999999999999999999999") {
@@ -105,17 +113,22 @@ const existingFrom = await resolveAwardOnchainFromAddress(
   async () => {
     sessionLoadCount += 1;
     return null;
-  }
+  },
 );
 
 if (
   existingFrom !== "0x0123456789abcdef0123456789abcdef01234567" ||
   sessionLoadCount !== 0
 ) {
-  throw new Error("Expected existing wallet state to be reused without loading session");
+  throw new Error(
+    "Expected existing wallet state to be reused without loading session",
+  );
 }
 
-if (result.txHash !== "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb") {
+if (
+  result.txHash !==
+  "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+) {
   throw new Error("Expected fund transaction hash");
 }
 
@@ -132,8 +145,9 @@ if (
   JSON.stringify({
     transactionType: "AwardFunded",
     walletAddress: "0x0123456789abcdef0123456789abcdef01234567",
-    txHash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-    blockNumber: 123456
+    txHash:
+      "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    blockNumber: 123456,
   })
 ) {
   throw new Error("Expected fund transaction record payload");
@@ -144,9 +158,10 @@ if (
   JSON.stringify({
     path: "/awards/award-1",
     body: {
-      fundTxHash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      status: "Funded"
-    }
+      fundTxHash:
+        "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      status: "Funded",
+    },
   })
 ) {
   throw new Error("Expected funded award patch after fund transaction");
@@ -158,7 +173,7 @@ await executeAwardOnchainAction({
   from: "0x0123456789abcdef0123456789abcdef01234567",
   registryAddress: "0x1111111111111111111111111111111111111111",
   provider,
-  api
+  api,
 });
 
 if (
@@ -166,10 +181,28 @@ if (
   JSON.stringify({
     path: "/awards/award-1",
     body: {
-      finalizeTxHash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      status: "Claiming"
-    }
+      finalizeTxHash:
+        "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      status: "Claiming",
+    },
   })
 ) {
   throw new Error("Expected claiming award patch after finalize transaction");
+}
+
+const missingContractHtml = renderAwardOnchainActions({
+  ...award,
+  contractAwardId: null,
+});
+
+if (
+  !missingContractHtml.includes(
+    "\ucee8\ud2b8\ub799\ud2b8 \uc5b4\uc6cc\ub4dc ID",
+  )
+) {
+  throw new Error("Expected Korean contract award id requirement");
+}
+
+if (missingContractHtml.includes("Contract Award ID")) {
+  throw new Error("Expected missing contract copy to avoid English label");
 }

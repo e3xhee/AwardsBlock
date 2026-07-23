@@ -235,7 +235,7 @@ export function mapAwardBlockDetailToViewModel(
   };
 }
 
-function renderAwardDetailContent(
+export function renderAwardDetailContent(
   awardBlock: AwardBlockDetailViewModel,
 ): string {
   return `
@@ -318,7 +318,7 @@ function renderMember(
         <div><dt>배정 수량</dt><dd>${escapeHtml(member.allocationLabel)}</dd></div>
         <div><dt>상태</dt><dd>${escapeHtml(member.status)}</dd></div>
         <div><dt>클레임일</dt><dd>${escapeHtml(member.claimedAtLabel)}</dd></div>
-        <div><dt>클레임 tx</dt><dd>${escapeHtml(member.claimTxLabel)}</dd></div>
+        <div><dt>클레임 트랜잭션</dt><dd>${escapeHtml(member.claimTxLabel)}</dd></div>
       </dl>
     </article>
   `;

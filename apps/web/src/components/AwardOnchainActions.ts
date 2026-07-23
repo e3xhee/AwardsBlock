@@ -9,7 +9,10 @@ import {
   type ContractWriteProvider,
 } from "../blockchain/awardRegistry";
 import { getRegistryConfigStatus } from "../blockchain/config";
-import { getBrowserEthereumProvider, loadWalletSession } from "../auth/walletAuth";
+import {
+  getBrowserEthereumProvider,
+  loadWalletSession,
+} from "../auth/walletAuth";
 import { walletState } from "../state/appState";
 import { shortenAddress } from "../utils/format";
 
@@ -125,7 +128,8 @@ export function mountAwardOnchainActions(root: ParentNode): void {
         const from = await resolveAwardOnchainFromAddress();
 
         if (!from) {
-          status.textContent = "\uC9C0\uAC11 \uC138\uC158\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.";
+          status.textContent =
+            "\uC9C0\uAC11 \uC138\uC158\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.";
           panel.classList.add("onchain-actions--error");
           button.disabled = false;
           return;
@@ -245,7 +249,7 @@ function getOnchainStatusLabel(
   actions: AwardOnchainAction[],
 ): string {
   if (!award.contractAwardId) {
-    return "트랜잭션 전송 전에 Contract Award ID가 필요합니다.";
+    return "트랜잭션 전송 전에 컨트랙트 어워드 ID가 필요합니다.";
   }
 
   if (actions.length === 0) {

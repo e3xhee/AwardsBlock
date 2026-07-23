@@ -1,5 +1,6 @@
 import {
   mapAwardBlockDetailToViewModel,
+  renderAwardDetailContent,
   renderAwardDetailPage,
   type AwardBlockDetailResponse,
 } from "./AwardDetailPage";
@@ -200,4 +201,14 @@ if (viewModel.transactions[3]?.blockLabel !== "블록 대기 중") {
 
 if (!renderAwardDetailPage("award-1").includes("어워드 블록")) {
   throw new Error("Expected Korean award detail page title");
+}
+
+const awardDetailHtml = renderAwardDetailContent(viewModel);
+
+if (!awardDetailHtml.includes("\ud074\ub808\uc784 \ud2b8\ub79c\uc7ad\uc158")) {
+  throw new Error("Expected award detail member claim transaction label");
+}
+
+if (awardDetailHtml.includes("\ud074\ub808\uc784 tx")) {
+  throw new Error("Expected award detail not to expose abbreviated tx label");
 }
