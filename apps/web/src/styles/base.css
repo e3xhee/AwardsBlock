@@ -1161,3 +1161,58 @@ body {
   flex-shrink: 0;
   text-decoration: none;
 }
+.organizer-dashboard-grid {
+  display: grid;
+  align-items: start;
+  gap: 24px;
+  grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
+}
+
+.organizer-events-panel,
+.organizer-project-review-panel {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.organizer-event-list,
+.organizer-project-review,
+.organizer-project-list {
+  display: grid;
+  gap: 12px;
+}
+
+.organizer-event-row,
+.organizer-project-row {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid #d6dbe7;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.organizer-event-row--selected {
+  border-color: #8aa06f;
+  box-shadow: inset 4px 0 0 #8aa06f;
+}
+
+.organizer-event-row h3,
+.organizer-project-row h3 {
+  margin: 0 0 6px;
+  font-size: 24px;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.organizer-event-row p,
+.organizer-project-row p {
+  margin: 0;
+  color: #4a5568;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  .organizer-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}

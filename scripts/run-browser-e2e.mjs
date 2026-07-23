@@ -41,26 +41,28 @@ try {
     "wallet API session",
   );
 
-  await cdp.send("Page.navigate", { url: `${webBaseUrl}/organizer/events` });
   await waitFor(
     cdp,
     "document.querySelector('#organizer-event-form') !== null",
     "organizer event form",
   );
-  await cdp.eval(`document.querySelector('#organizer-event-form').requestSubmit()`);
+  await cdp.eval(
+    `document.querySelector('#organizer-event-form').requestSubmit()`,
+  );
   const eventResult = await waitForValue(
     cdp,
     `(() => {
-      const eventPath = [...document.querySelectorAll('.organizer-result-actions a')]
-        .map((link) => link.getAttribute('href'))
-        .find((href) => href?.startsWith('/events/'));
-      return eventPath ? { eventPath, eventId: eventPath.split('/').pop() } : null;
+      const button = document.querySelector('[data-organizer-event-id]');
+      const eventId = button?.getAttribute('data-organizer-event-id');
+      return eventId ? { eventPath: '/events/' + eventId, eventId } : null;
     })()`,
-    "event creation success",
+    "dashboard event list",
   );
 
   await loginAsRole(cdp, "participant", ".participant-dashboard-page");
-  await cdp.send("Page.navigate", { url: `${webBaseUrl}/participant/projects` });
+  await cdp.send("Page.navigate", {
+    url: `${webBaseUrl}/participant/projects`,
+  });
   await waitFor(
     cdp,
     "document.querySelector('#participant-project-form') !== null",
@@ -87,41 +89,29 @@ try {
   );
 
   await loginAsRole(cdp, "organizer", ".organizer-dashboard-page");
-  await cdp.send("Page.navigate", { url: `${webBaseUrl}/organizer/winners` });
   await waitFor(
     cdp,
-    "document.querySelector('#organizer-winner-form') !== null",
-    "organizer winner form",
-  );
-  await waitFor(
-    cdp,
-    `document.querySelector('#winner-event-select option[value="${eventResult.eventId}"]') !== null`,
-    "winner event option",
-  );
-  await cdp.eval(`(() => {
-    const eventSelect = document.querySelector('#winner-event-select');
-    eventSelect.value = '${eventResult.eventId}';
-    eventSelect.dispatchEvent(new Event('change'));
-  })()`);
-  await waitFor(
-    cdp,
-    `document.querySelector('#winner-project-select option[value="${projectResult.projectId}"]') !== null`,
-    "winner project option",
+    `document.querySelector('[data-organizer-event-id="${eventResult.eventId}"]') !== null`,
+    "created event in organizer dashboard",
   );
   await cdp.eval(
-    `document.querySelector('#winner-project-select').value = '${projectResult.projectId}'`,
+    `document.querySelector('[data-organizer-event-id="${eventResult.eventId}"]').click()`,
+  );
+  await waitFor(
+    cdp,
+    `document.querySelector('[data-winner-project-id="${projectResult.projectId}"]') !== null`,
+    "submitted project in organizer dashboard",
   );
   await cdp.eval(
-    `document.querySelector('[name="recipientWalletAddress"]').value = '${session.walletAddress}'`,
+    `document.querySelector('[data-winner-project-id="${projectResult.projectId}"]').click()`,
   );
-  await cdp.eval(`document.querySelector('#organizer-winner-form').requestSubmit()`);
   const winnerResult = await waitForValue(
     cdp,
     `(() => {
-      const awardPath = document.querySelector('#organizer-winner-result a[href^="/awards/"]')?.getAttribute('href');
+      const awardPath = document.querySelector('#organizer-project-review a[href^="/awards/"]')?.getAttribute('href');
       return awardPath ? { awardPath, awardId: awardPath.split('/').pop() } : null;
     })()`,
-    "winner selection success",
+    "dashboard winner selection success",
   );
 
   await cdp.send("Page.navigate", {
@@ -133,11 +123,15 @@ try {
     "award detail",
   );
 
-  const awardBlock = await fetchJson(`${apiBaseUrl}/award-blocks/${winnerResult.awardId}`);
+  const awardBlock = await fetchJson(
+    `${apiBaseUrl}/award-blocks/${winnerResult.awardId}`,
+  );
   const member = awardBlock.awardBlock.members[0];
 
   if (awardBlock.awardBlock.award.title !== "Grand Prize") {
-    throw new Error(`Expected Grand Prize, got ${awardBlock.awardBlock.award.title}`);
+    throw new Error(
+      `Expected Grand Prize, got ${awardBlock.awardBlock.award.title}`,
+    );
   }
 
   if (awardBlock.awardBlock.project.id !== projectResult.projectId) {
@@ -145,7 +139,9 @@ try {
   }
 
   if (member?.walletAddress !== session.walletAddress) {
-    throw new Error("Expected authenticated wallet session as the recipientWalletAddress");
+    throw new Error(
+      "Expected authenticated wallet session as the recipientWalletAddress",
+    );
   }
 
   console.log(
@@ -177,7 +173,9 @@ async function loginAsRole(cdp, role, dashboardSelector) {
     "document.querySelector('.role-login-page') !== null",
     `${role} role login page`,
   );
-  await cdp.eval(`document.querySelector('[data-role-login="${role}"]').click()`);
+  await cdp.eval(
+    `document.querySelector('[data-role-login="${role}"]').click()`,
+  );
   await waitFor(
     cdp,
     `document.querySelector('${dashboardSelector}') !== null`,

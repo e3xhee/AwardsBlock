@@ -10,13 +10,17 @@ test("package exposes the browser e2e command", async () => {
   );
 });
 
-test("browser e2e follows the separated role flow and uses the authenticated recipient wallet", async () => {
+test("browser e2e follows the dashboard-based role flow and uses the authenticated recipient wallet", async () => {
   const script = await readFile("scripts/run-browser-e2e.mjs", "utf8");
   assert.match(script, /\/auth\/session/);
-  assert.match(script, /\/organizer\/events/);
+  assert.match(script, /organizer-dashboard-page/);
+  assert.match(script, /#organizer-event-form/);
+  assert.match(script, /data-organizer-event-id/);
   assert.match(script, /\/participant\/projects/);
-  assert.match(script, /\/organizer\/winners/);
+  assert.match(script, /data-winner-project-id/);
   assert.match(script, /recipientWalletAddress/);
+  assert.doesNotMatch(script, /\/organizer\/events/);
+  assert.doesNotMatch(script, /\/organizer\/winners/);
   assert.doesNotMatch(script, /account\.address/);
 });
 
