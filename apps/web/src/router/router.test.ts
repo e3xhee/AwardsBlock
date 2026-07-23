@@ -37,3 +37,36 @@ if (
     "Expected project detail route to render a project detail shell",
   );
 }
+
+const loginRouteHtml = renderRoute("/login");
+
+if (!loginRouteHtml.includes("role-login-page") || !loginRouteHtml.includes("등록자로 로그인")) {
+  throw new Error("Expected role login route to render organizer and participant choices");
+}
+
+const organizerEventRouteHtml = renderRoute("/organizer/events");
+
+if (
+  !organizerEventRouteHtml.includes("organizer-event-page") ||
+  !organizerEventRouteHtml.includes("행사 등록")
+) {
+  throw new Error("Expected organizer event route to render event creation flow");
+}
+
+const participantProjectRouteHtml = renderRoute("/participant/projects");
+
+if (
+  !participantProjectRouteHtml.includes("participant-project-page") ||
+  !participantProjectRouteHtml.includes("프로젝트 제출")
+) {
+  throw new Error("Expected participant project route to render project submission flow");
+}
+
+const organizerWinnerRouteHtml = renderRoute("/organizer/winners");
+
+if (
+  !organizerWinnerRouteHtml.includes("organizer-winner-page") ||
+  !organizerWinnerRouteHtml.includes("우승자 선택")
+) {
+  throw new Error("Expected organizer winner route to render winner selection flow");
+}

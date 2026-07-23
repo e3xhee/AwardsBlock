@@ -29,6 +29,7 @@ const updateProjectSchema = createProjectSchema.partial().strict();
 
 type CreateProjectInput = z.infer<typeof createProjectSchema> & {
   eventId: string;
+  submitterWallet: string;
 };
 type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
 
@@ -39,6 +40,7 @@ type EventOwnerRow = {
 type ProjectRow = {
   id: string;
   event_id: string;
+  submitter_wallet: string;
   name: string;
   tagline: string;
   description: string;
@@ -55,6 +57,7 @@ type ProjectRow = {
 const projectColumns = `
   id,
   event_id,
+  submitter_wallet,
   name,
   tagline,
   description,
@@ -95,13 +98,6 @@ export function createProjectRouter(database: DatabaseSync) {
       return;
     }
 
-    const session = getAuthenticatedSession(request);
-
-    if (eventOwner.organizer_wallet !== session.walletAddress) {
-      sendProjectForbidden(response);
-      return;
-    }
-
     const parsedProject = createProjectSchema.safeParse(request.body);
 
     if (!parsedProject.success) {
@@ -111,9 +107,11 @@ export function createProjectRouter(database: DatabaseSync) {
       return;
     }
 
+    const session = getAuthenticatedSession(request);
     const project = insertProject(database, {
       ...parsedProject.data,
-      eventId: request.params.eventId
+      eventId: request.params.eventId,
+      submitterWallet: session.walletAddress
     });
 
     response.status(201).json({ project: toProjectResponse(project) });
@@ -185,6 +183,7 @@ function insertProject(database: DatabaseSync, project: CreateProjectInput): Pro
       `INSERT INTO projects (
         id,
         event_id,
+        submitter_wallet,
         name,
         tagline,
         description,
@@ -196,11 +195,12 @@ function insertProject(database: DatabaseSync, project: CreateProjectInput): Pro
         presentation_url,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       id,
       project.eventId,
+      project.submitterWallet,
       project.name,
       project.tagline,
       project.description,
@@ -288,7 +288,10 @@ function canMutateProject(
   const eventOwner = findEventOwner(database, project.event_id);
   const session = getAuthenticatedSession(request);
 
-  return eventOwner?.organizer_wallet === session.walletAddress;
+  return (
+    eventOwner?.organizer_wallet === session.walletAddress ||
+    project.submitter_wallet === session.walletAddress
+  );
 }
 
 function findEventOwner(database: DatabaseSync, eventId: string): EventOwnerRow | undefined {
@@ -311,6 +314,7 @@ function toProjectResponse(row: ProjectRow) {
   return {
     id: row.id,
     eventId: row.event_id,
+    submitterWallet: row.submitter_wallet,
     name: row.name,
     tagline: row.tagline,
     description: row.description,
@@ -334,7 +338,12 @@ function sendProjectNotFound(response: Response): void {
 }
 
 function sendProjectForbidden(response: Response): void {
-  sendError(response, 403, "PROJECT_FORBIDDEN", "Project can only be changed by its event organizer");
+  sendError(
+    response,
+    403,
+    "PROJECT_FORBIDDEN",
+    "Project can only be changed by its submitting participant or event organizer"
+  );
 }
 
 function sendError(

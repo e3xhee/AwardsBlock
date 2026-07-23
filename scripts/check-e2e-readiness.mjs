@@ -128,7 +128,7 @@ export function formatReadinessReport(report) {
     lines.push("- corepack pnpm seed:demo");
     lines.push("- corepack pnpm dev");
     lines.push("- corepack pnpm e2e:browser");
-    lines.push("- Open http://localhost:5173/organizer");
+    lines.push("- Open http://localhost:5173/login");
   }
 
   return lines.join("\n");

@@ -19,7 +19,7 @@ const chrome = spawn(
     "--no-default-browser-check",
     `--remote-debugging-port=${port}`,
     `--user-data-dir=${userDataDir}`,
-    `${webBaseUrl}/organizer`,
+    `${webBaseUrl}/login`,
   ],
   { stdio: "ignore" },
 );
@@ -33,13 +33,13 @@ try {
   const cdp = await connectCdp(page.webSocketDebuggerUrl);
   await cdp.send("Page.enable");
   await cdp.send("Runtime.enable");
-  await cdp.send("Page.navigate", { url: `${webBaseUrl}/organizer` });
+
+  await cdp.send("Page.navigate", { url: `${webBaseUrl}/login` });
   await waitFor(
     cdp,
-    "document.querySelector('#organizer-award-form') !== null",
-    "organizer form",
+    "document.querySelector('.role-login-page') !== null",
+    "role login page",
   );
-
   await cdp.eval(`document.querySelector('[data-wallet-connect]').click()`);
   await waitFor(
     cdp,
@@ -51,101 +51,120 @@ try {
     `fetch("${apiBaseUrl}/auth/session", { credentials: "include" }).then((response) => response.ok ? response.json() : null).then((payload) => payload?.session ?? null)`,
     "wallet API session",
   );
+
+  await cdp.send("Page.navigate", { url: `${webBaseUrl}/organizer/events` });
+  await waitFor(
+    cdp,
+    "document.querySelector('#organizer-event-form') !== null",
+    "organizer event form",
+  );
+  await cdp.eval(`document.querySelector('#organizer-event-form').requestSubmit()`);
+  const eventResult = await waitForValue(
+    cdp,
+    `(() => {
+      const eventPath = [...document.querySelectorAll('.organizer-result-actions a')]
+        .map((link) => link.getAttribute('href'))
+        .find((href) => href?.startsWith('/events/'));
+      return eventPath ? { eventPath, eventId: eventPath.split('/').pop() } : null;
+    })()`,
+    "event creation success",
+  );
+
+  await cdp.send("Page.navigate", { url: `${webBaseUrl}/participant/projects` });
+  await waitFor(
+    cdp,
+    "document.querySelector('#participant-project-form') !== null",
+    "participant project form",
+  );
+  await waitFor(
+    cdp,
+    `document.querySelector('#participant-event-select option[value="${eventResult.eventId}"]') !== null`,
+    "created event option",
+  );
+  await cdp.eval(
+    `document.querySelector('#participant-event-select').value = '${eventResult.eventId}'`,
+  );
+  await cdp.eval(
+    `document.querySelector('#participant-project-form').requestSubmit()`,
+  );
+  const projectResult = await waitForValue(
+    cdp,
+    `(() => {
+      const projectPath = document.querySelector('#participant-project-result a[href^="/projects/"]')?.getAttribute('href');
+      return projectPath ? { projectPath, projectId: projectPath.split('/').pop() } : null;
+    })()`,
+    "project submission success",
+  );
+
+  await cdp.send("Page.navigate", { url: `${webBaseUrl}/organizer/winners` });
+  await waitFor(
+    cdp,
+    "document.querySelector('#organizer-winner-form') !== null",
+    "organizer winner form",
+  );
+  await waitFor(
+    cdp,
+    `document.querySelector('#winner-event-select option[value="${eventResult.eventId}"]') !== null`,
+    "winner event option",
+  );
+  await cdp.eval(`(() => {
+    const eventSelect = document.querySelector('#winner-event-select');
+    eventSelect.value = '${eventResult.eventId}';
+    eventSelect.dispatchEvent(new Event('change'));
+  })()`);
+  await waitFor(
+    cdp,
+    `document.querySelector('#winner-project-select option[value="${projectResult.projectId}"]') !== null`,
+    "winner project option",
+  );
+  await cdp.eval(
+    `document.querySelector('#winner-project-select').value = '${projectResult.projectId}'`,
+  );
   await cdp.eval(
     `document.querySelector('[name="recipientWalletAddress"]').value = '${session.walletAddress}'`,
   );
-
-  await cdp.eval(
-    `document.querySelector('#organizer-award-form').requestSubmit()`,
-  );
-  const organizerResult = await waitForValue(
+  await cdp.eval(`document.querySelector('#organizer-winner-form').requestSubmit()`);
+  const winnerResult = await waitForValue(
     cdp,
     `(() => {
-      const links = [...document.querySelectorAll('.organizer-result-actions a')].map((link) => link.getAttribute('href'));
-      const awardPath = links.find((href) => href?.startsWith('/awards/'));
-      const claimPath = links.find((href) => href?.startsWith('/claim/'));
-      return awardPath && claimPath ? { awardPath, claimPath, text: document.querySelector('#organizer-result')?.innerText ?? '' } : null;
+      const awardPath = document.querySelector('#organizer-winner-result a[href^="/awards/"]')?.getAttribute('href');
+      return awardPath ? { awardPath, awardId: awardPath.split('/').pop() } : null;
     })()`,
-    "organizer success",
+    "winner selection success",
   );
 
   await cdp.send("Page.navigate", {
-    url: `${webBaseUrl}${organizerResult.awardPath}`,
+    url: `${webBaseUrl}${winnerResult.awardPath}`,
   });
   await waitFor(
     cdp,
-    "document.querySelector('[data-onchain-action=\"fund\"]') !== null",
-    "fund action",
-  );
-  await cdp.eval(
-    `document.querySelector('[data-onchain-action="fund"]').click()`,
-  );
-  await waitFor(
-    cdp,
-    "document.querySelector('[data-onchain-action=\"finalize\"]') !== null",
-    "finalize action",
-  );
-  await cdp.eval(
-    `document.querySelector('[data-onchain-action="finalize"]').click()`,
-  );
-  await waitFor(
-    cdp,
-    "document.querySelector('[data-onchain-action]') === null",
-    "finalized state",
+    "document.querySelector('#award-detail-content')?.innerText.includes('Grand Prize')",
+    "award detail",
   );
 
-  await cdp.send("Page.navigate", {
-    url: `${webBaseUrl}${organizerResult.claimPath}`,
-  });
-  await waitFor(
-    cdp,
-    "document.querySelector('[data-claim-form] button') !== null",
-    "claim form",
-  );
-  await cdp.eval(`document.querySelector('[data-claim-form]').requestSubmit()`);
-  await waitFor(
-    cdp,
-    "document.querySelector('.empty-state h2')?.innerText.includes('0x')",
-    "claim success",
-  );
-
-  const awardId = organizerResult.awardPath.split("/").pop();
-  const awardBlock = await fetchJson(`${apiBaseUrl}/award-blocks/${awardId}`);
-  const transactionTypes = awardBlock.awardBlock.transactions.map(
-    (tx) => tx.transactionType,
-  );
+  const awardBlock = await fetchJson(`${apiBaseUrl}/award-blocks/${winnerResult.awardId}`);
   const member = awardBlock.awardBlock.members[0];
 
-  if (awardBlock.awardBlock.award.status !== "Claiming") {
-    throw new Error(
-      `Expected award status Claiming, got ${awardBlock.awardBlock.award.status}`,
-    );
+  if (awardBlock.awardBlock.award.title !== "Grand Prize") {
+    throw new Error(`Expected Grand Prize, got ${awardBlock.awardBlock.award.title}`);
   }
 
-  for (const expected of [
-    "AwardRegistered",
-    "RecipientsSet",
-    "AwardFunded",
-    "AwardFinalized",
-    "AwardClaimed",
-  ]) {
-    if (!transactionTypes.includes(expected)) {
-      throw new Error(`Missing transaction record ${expected}`);
-    }
+  if (awardBlock.awardBlock.project.id !== projectResult.projectId) {
+    throw new Error("Expected award to reference submitted project");
   }
 
-  if (member?.inviteStatus !== "Claimed" || !member.claimTxHash) {
-    throw new Error("Expected recipient member to be claimed");
+  if (member?.walletAddress !== session.walletAddress) {
+    throw new Error("Expected authenticated wallet session as the recipientWalletAddress");
   }
 
   console.log(
     JSON.stringify(
       {
-        awardPath: organizerResult.awardPath,
-        claimPath: organizerResult.claimPath,
+        eventPath: eventResult.eventPath,
+        projectPath: projectResult.projectPath,
+        awardPath: winnerResult.awardPath,
         awardStatus: awardBlock.awardBlock.award.status,
-        memberStatus: member.inviteStatus,
-        transactionTypes,
+        recipientWalletAddress: member.walletAddress,
       },
       null,
       2,

@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import assert from "node:assert/strict";
+
 test("package exposes the browser e2e command", async () => {
   const packageJson = JSON.parse(await readFile("package.json", "utf8"));
   assert.equal(
@@ -8,12 +9,17 @@ test("package exposes the browser e2e command", async () => {
     "node scripts/run-browser-e2e.mjs",
   );
 });
-test("browser e2e uses the authenticated wallet session as the recipient", async () => {
+
+test("browser e2e follows the separated role flow and uses the authenticated recipient wallet", async () => {
   const script = await readFile("scripts/run-browser-e2e.mjs", "utf8");
   assert.match(script, /\/auth\/session/);
+  assert.match(script, /\/organizer\/events/);
+  assert.match(script, /\/participant\/projects/);
+  assert.match(script, /\/organizer\/winners/);
   assert.match(script, /recipientWalletAddress/);
   assert.doesNotMatch(script, /account\.address/);
 });
+
 test("browser e2e can be configured by environment variables", async () => {
   const script = await readFile("scripts/run-browser-e2e.mjs", "utf8");
   assert.match(script, /AWARDBLOCK_CHROME_PATH/);
@@ -25,6 +31,7 @@ test("browser e2e can be configured by environment variables", async () => {
     /fetch\("http:\/\/localhost:4000\/auth\/session"/,
   );
 });
+
 test("env example documents browser e2e overrides", async () => {
   const envExample = await readFile(".env.example", "utf8");
   assert.match(envExample, /AWARDBLOCK_CHROME_PATH=/);

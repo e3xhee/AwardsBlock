@@ -11,8 +11,11 @@ const jsonHeaders = { "content-type": "application/json" };
 const organizerAccount = privateKeyToAccount(
   "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 );
-const otherAccount = privateKeyToAccount(
+const participantAccount = privateKeyToAccount(
   "0x1111111111111111111111111111111111111111111111111111111111111111"
+);
+const otherAccount = privateKeyToAccount(
+  "0x2222222222222222222222222222222222222222222222222222222222222222"
 );
 
 const eventInput = {
@@ -51,6 +54,7 @@ type ProjectResponse = {
   project: {
     id: string;
     eventId: string;
+    submitterWallet: string;
     name: string;
     tagline: string;
     description: string;
@@ -141,9 +145,10 @@ async function createEvent(baseUrl: string, cookie: string): Promise<string> {
   return created.event.id;
 }
 
-test("event organizers can create, read, update, and delete projects", async () => {
+test("participants can submit projects while organizers retain review control", async () => {
   await withApi(async (baseUrl) => {
     const organizerCookie = await signIn(baseUrl, organizerAccount);
+    const participantCookie = await signIn(baseUrl, participantAccount);
     const otherCookie = await signIn(baseUrl, otherAccount);
     const eventId = await createEvent(baseUrl, organizerCookie);
 
@@ -154,22 +159,16 @@ test("event organizers can create, read, update, and delete projects", async () 
     });
     assert.equal(anonymousCreateResponse.status, 401);
 
-    const forbiddenCreateResponse = await fetch(`${baseUrl}/events/${eventId}/projects`, {
-      method: "POST",
-      headers: { ...jsonHeaders, cookie: otherCookie },
-      body: JSON.stringify(projectInput)
-    });
-    assert.equal(forbiddenCreateResponse.status, 403);
-
     const createResponse = await fetch(`${baseUrl}/events/${eventId}/projects`, {
       method: "POST",
-      headers: { ...jsonHeaders, cookie: organizerCookie },
+      headers: { ...jsonHeaders, cookie: participantCookie },
       body: JSON.stringify(projectInput)
     });
 
     assert.equal(createResponse.status, 201);
     const created = await readJson<ProjectResponse>(createResponse);
     assert.equal(created.project.eventId, eventId);
+    assert.equal(created.project.submitterWallet, participantAccount.address.toLowerCase());
     assert.equal(created.project.name, projectInput.name);
     assert.equal(created.project.tagline, projectInput.tagline);
     assert.equal(created.project.imageUrl, null);
@@ -179,11 +178,13 @@ test("event organizers can create, read, update, and delete projects", async () 
     const list = await readJson<{ projects: ProjectResponse["project"][] }>(listResponse);
     assert.equal(list.projects.length, 1);
     assert.equal(list.projects[0]?.id, created.project.id);
+    assert.equal(list.projects[0]?.submitterWallet, participantAccount.address.toLowerCase());
 
     const getResponse = await fetch(`${baseUrl}/projects/${created.project.id}`);
     assert.equal(getResponse.status, 200);
     const fetched = await readJson<ProjectResponse>(getResponse);
     assert.equal(fetched.project.id, created.project.id);
+    assert.equal(fetched.project.submitterWallet, participantAccount.address.toLowerCase());
 
     const forbiddenUpdateResponse = await fetch(`${baseUrl}/projects/${created.project.id}`, {
       method: "PATCH",
@@ -192,15 +193,24 @@ test("event organizers can create, read, update, and delete projects", async () 
     });
     assert.equal(forbiddenUpdateResponse.status, 403);
 
-    const updateResponse = await fetch(`${baseUrl}/projects/${created.project.id}`, {
+    const participantUpdateResponse = await fetch(`${baseUrl}/projects/${created.project.id}`, {
+      method: "PATCH",
+      headers: { ...jsonHeaders, cookie: participantCookie },
+      body: JSON.stringify({ tagline: "Updated by the submitting participant" })
+    });
+    assert.equal(participantUpdateResponse.status, 200);
+    const participantUpdated = await readJson<ProjectResponse>(participantUpdateResponse);
+    assert.equal(participantUpdated.project.tagline, "Updated by the submitting participant");
+
+    const organizerUpdateResponse = await fetch(`${baseUrl}/projects/${created.project.id}`, {
       method: "PATCH",
       headers: { ...jsonHeaders, cookie: organizerCookie },
       body: JSON.stringify({ tagline: "Project data room for prize review", problem: null })
     });
-    assert.equal(updateResponse.status, 200);
-    const updated = await readJson<ProjectResponse>(updateResponse);
-    assert.equal(updated.project.tagline, "Project data room for prize review");
-    assert.equal(updated.project.problem, null);
+    assert.equal(organizerUpdateResponse.status, 200);
+    const organizerUpdated = await readJson<ProjectResponse>(organizerUpdateResponse);
+    assert.equal(organizerUpdated.project.tagline, "Project data room for prize review");
+    assert.equal(organizerUpdated.project.problem, null);
 
     const anonymousDeleteResponse = await fetch(`${baseUrl}/projects/${created.project.id}`, {
       method: "DELETE"
@@ -226,12 +236,13 @@ test("event organizers can create, read, update, and delete projects", async () 
 
 test("project creation validates input and requires an existing event", async () => {
   await withApi(async (baseUrl) => {
+    const participantCookie = await signIn(baseUrl, participantAccount);
     const organizerCookie = await signIn(baseUrl, organizerAccount);
     const eventId = await createEvent(baseUrl, organizerCookie);
 
     const invalidResponse = await fetch(`${baseUrl}/events/${eventId}/projects`, {
       method: "POST",
-      headers: { ...jsonHeaders, cookie: organizerCookie },
+      headers: { ...jsonHeaders, cookie: participantCookie },
       body: JSON.stringify({ ...projectInput, name: "" })
     });
     assert.equal(invalidResponse.status, 400);
@@ -240,7 +251,7 @@ test("project creation validates input and requires an existing event", async ()
 
     const missingEventResponse = await fetch(`${baseUrl}/events/missing-event/projects`, {
       method: "POST",
-      headers: { ...jsonHeaders, cookie: organizerCookie },
+      headers: { ...jsonHeaders, cookie: participantCookie },
       body: JSON.stringify(projectInput)
     });
     assert.equal(missingEventResponse.status, 404);

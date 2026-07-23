@@ -2,9 +2,13 @@ import { renderAwardDetailPage } from "../pages/AwardDetailPage";
 import { renderClaimInvitePage } from "../pages/ClaimInvitePage";
 import { renderEventDetailPage } from "../pages/EventDetailPage";
 import { renderHomePage } from "../pages/HomePage";
-import { renderOrganizerPage } from "../pages/OrganizerPage";
+import { renderOrganizerDashboardPage } from "../pages/OrganizerDashboardPage";
+import { renderOrganizerEventPage } from "../pages/OrganizerEventPage";
+import { renderOrganizerWinnerPage } from "../pages/OrganizerWinnerPage";
+import { renderParticipantProjectPage } from "../pages/ParticipantProjectPage";
 import { renderProfilePage } from "../pages/ProfilePage";
 import { renderProjectDetailPage } from "../pages/ProjectDetailPage";
+import { renderRoleLoginPage } from "../pages/RoleLoginPage";
 
 export function renderRoute(pathname: string): string {
   if (pathname.startsWith("/events/")) return renderEventDetailPage(getEventId(pathname));
@@ -12,7 +16,13 @@ export function renderRoute(pathname: string): string {
   if (pathname.startsWith("/awards/")) return renderAwardDetailPage(getAwardId(pathname));
   if (pathname.startsWith("/profile/")) return renderProfilePage(getProfileWalletAddress(pathname));
   if (pathname.startsWith("/claim/")) return renderClaimInvitePage(getClaimInviteToken(pathname));
-  if (pathname === "/organizer") return renderOrganizerPage();
+  if (pathname === "/login") return renderRoleLoginPage();
+  if (pathname === "/organizer") return renderOrganizerDashboardPage();
+  if (pathname === "/organizer/events") return renderOrganizerEventPage();
+  if (pathname === "/organizer/winners") return renderOrganizerWinnerPage();
+  if (pathname === "/participant" || pathname === "/participant/projects") {
+    return renderParticipantProjectPage();
+  }
   return renderHomePage();
 }
 

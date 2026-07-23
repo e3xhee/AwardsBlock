@@ -3,9 +3,13 @@ import { mountAwardDetailPage } from "./pages/AwardDetailPage";
 import { mountClaimInvitePage } from "./pages/ClaimInvitePage";
 import { mountEventDetailPage } from "./pages/EventDetailPage";
 import { mountHomePage } from "./pages/HomePage";
-import { mountOrganizerPage } from "./pages/OrganizerPage";
+import { mountOrganizerDashboardPage } from "./pages/OrganizerDashboardPage";
+import { mountOrganizerEventPage } from "./pages/OrganizerEventPage";
+import { mountOrganizerWinnerPage } from "./pages/OrganizerWinnerPage";
+import { mountParticipantProjectPage } from "./pages/ParticipantProjectPage";
 import { mountProfilePage } from "./pages/ProfilePage";
 import { mountProjectDetailPage } from "./pages/ProjectDetailPage";
+import { mountRoleLoginPage } from "./pages/RoleLoginPage";
 import {
   getAwardId,
   getClaimInviteToken,
@@ -61,8 +65,28 @@ async function mountRoute(root: ParentNode, pathname: string): Promise<void> {
     return;
   }
 
+  if (pathname === "/login") {
+    mountRoleLoginPage(root);
+    return;
+  }
+
   if (pathname === "/organizer") {
-    mountOrganizerPage(root);
+    mountOrganizerDashboardPage(root);
+    return;
+  }
+
+  if (pathname === "/organizer/events") {
+    mountOrganizerEventPage(root);
+    return;
+  }
+
+  if (pathname === "/organizer/winners") {
+    mountOrganizerWinnerPage(root);
+    return;
+  }
+
+  if (pathname === "/participant" || pathname === "/participant/projects") {
+    mountParticipantProjectPage(root);
     return;
   }
 

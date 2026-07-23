@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE TABLE IF NOT EXISTS projects (
   id TEXT PRIMARY KEY,
   event_id TEXT NOT NULL REFERENCES events(id),
+  submitter_wallet TEXT NOT NULL,
   name TEXT NOT NULL,
   tagline TEXT NOT NULL,
   description TEXT NOT NULL,

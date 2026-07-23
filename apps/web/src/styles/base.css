@@ -1053,3 +1053,75 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+.role-login-page,
+.organizer-dashboard-page,
+.organizer-event-page,
+.participant-project-page,
+.organizer-winner-page {
+  display: grid;
+  gap: 28px;
+}
+
+.role-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 40px 0 24px;
+  border-bottom: 1px solid #d6dbe7;
+}
+
+.role-hero h1 {
+  margin: 0;
+  font-size: 40px;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.role-hero p {
+  max-width: 720px;
+  margin: 10px 0 0;
+  color: #4a5568;
+}
+
+.role-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.role-card {
+  display: grid;
+  gap: 12px;
+  min-height: 180px;
+  padding: 22px;
+  border: 1px solid #d6dbe7;
+  border-radius: 8px;
+  background: #ffffff;
+  color: inherit;
+  text-decoration: none;
+}
+
+.role-card h2 {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.1;
+}
+
+.role-card p {
+  margin: 0;
+  color: #4a5568;
+  overflow-wrap: anywhere;
+}
+
+.organizer-form select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid #d6dbe7;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1d2433;
+  font: inherit;
+}

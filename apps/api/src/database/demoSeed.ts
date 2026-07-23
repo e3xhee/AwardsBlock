@@ -9,6 +9,7 @@ export type DemoSeedResult = {
   invitedMemberId: string;
   claimInviteToken: string;
   organizerWallet: string;
+  participantWallet: string;
   claimedWallet: string;
 };
 
@@ -21,6 +22,7 @@ const demo = {
   claimInviteId: "invite-1",
   claimInviteToken: "demo-claim-token",
   organizerWallet: "0xfcad0b19bb29d4674531d6f115237e16afad377c",
+  participantWallet: "0x1111111111111111111111111111111111111111",
   claimedWallet: "0x3333333333333333333333333333333333333333",
   invitedWallet: null,
   now: "2026-08-01T18:00:00.000Z",
@@ -51,6 +53,7 @@ export function seedDemoData(database: DatabaseSync): DemoSeedResult {
     invitedMemberId: demo.invitedMemberId,
     claimInviteToken: demo.claimInviteToken,
     organizerWallet: demo.organizerWallet,
+    participantWallet: demo.participantWallet,
     claimedWallet: demo.claimedWallet,
   };
 }
@@ -109,6 +112,7 @@ function upsertProject(database: DatabaseSync): void {
       `INSERT INTO projects (
         id,
         event_id,
+        submitter_wallet,
         name,
         tagline,
         description,
@@ -120,9 +124,10 @@ function upsertProject(database: DatabaseSync): void {
         presentation_url,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         event_id = excluded.event_id,
+        submitter_wallet = excluded.submitter_wallet,
         name = excluded.name,
         tagline = excluded.tagline,
         description = excluded.description,
@@ -137,6 +142,7 @@ function upsertProject(database: DatabaseSync): void {
     .run(
       demo.projectId,
       demo.eventId,
+      demo.participantWallet,
       "Uniport",
       "Unified passport for university builders",
       "Uniport helps students prove profiles, projects, and builder activity across campuses.",
