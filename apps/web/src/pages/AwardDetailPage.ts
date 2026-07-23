@@ -120,6 +120,153 @@ type AwardBlockDetailViewModel = {
   }>;
 };
 
+const mockUniportAwardBlockDetail: AwardBlockDetail = {
+  id: "award-1",
+  organizerWallet: "0x953500000000000000000000000000000000f6eb",
+  event: {
+    id: "event-de-buthon-2026",
+    name: "De-Buthon 2026",
+    description:
+      "Web3 빌더가 프로젝트를 제출하고 검증 가능한 수상 기록을 남기는 해커톤입니다.",
+    startDate: "2026-08-01T09:00:00.000Z",
+    endDate: "2026-08-15T18:00:00.000Z",
+    location: "Seoul, Korea",
+    officialUrl: "https://awardblock.example/events/de-buthon-2026",
+  },
+  project: {
+    id: "project-uniport",
+    name: "Uniport",
+    tagline: "대학생을 위한 Web3 포트폴리오 패스포트",
+    description:
+      "Uniport는 참가자의 온체인 활동, 프로젝트 제출 이력, 수상 기록을 하나의 검증 가능한 포트폴리오로 연결하는 서비스입니다.",
+    githubUrl: "https://github.com/example/uniport",
+    demoUrl: "https://uniport.example",
+  },
+  award: {
+    id: "award-1",
+    title: "Grand Prize",
+    rank: "1st",
+    reason:
+      "사용자 역할을 분리한 제출 플로우와 수상 기록의 검증 가능성을 가장 명확하게 보여주었습니다.",
+    judgingSummary:
+      "프로젝트 제출, 심사, 수상 기록 발행까지 이어지는 전체 여정이 완성도 있게 연결되었습니다.",
+    status: "Claiming",
+    rewardTokenSymbol: "mUSDC",
+    rewardTokenAddress: "0x2222222222222222222222222222222222222222",
+    rewardTokenDecimals: 6,
+    totalReward: "3000000",
+    claimStart: "2026-08-16T00:00:00.000Z",
+    claimEnd: "2026-09-16T00:00:00.000Z",
+    metadataUri: "ipfs://awardblock/de-buthon-2026/uniport-grand-prize",
+    metadataHash: "0xawardblock2026uniportmetadata",
+    contractAwardId: "1",
+    createTxHash:
+      "0x1010101010101010101010101010101010101010101010101010101010101010",
+    fundTxHash:
+      "0x3030303030303030303030303030303030303030303030303030303030303030",
+    finalizeTxHash:
+      "0x4040404040404040404040404040404040404040404040404040404040404040",
+  },
+  members: [
+    {
+      id: "member-uniport-team",
+      displayName: "Uniport Team",
+      walletAddress: "0x3333333333333333333333333333333333333333",
+      allocation: "1500000",
+      inviteStatus: "Claimed",
+      walletConnectedAt: "2026-08-16T03:00:00.000Z",
+      claimedAt: "2026-08-17T05:30:00.000Z",
+      claimTxHash:
+        "0x5050505050505050505050505050505050505050505050505050505050505050",
+    },
+    {
+      id: "member-minji-kim",
+      displayName: "Minji Kim",
+      walletAddress: "0x4444444444444444444444444444444444444444",
+      allocation: "900000",
+      inviteStatus: "WalletConnected",
+      walletConnectedAt: "2026-08-16T04:20:00.000Z",
+      claimedAt: null,
+      claimTxHash: null,
+    },
+    {
+      id: "member-jae-lee",
+      displayName: "Jae Lee",
+      walletAddress: null,
+      allocation: "600000",
+      inviteStatus: "Pending",
+      walletConnectedAt: null,
+      claimedAt: null,
+      claimTxHash: null,
+    },
+  ],
+  transactions: [
+    {
+      id: "tx-award-created",
+      transactionType: "AwardCreated",
+      walletAddress: "0x953500000000000000000000000000000000f6eb",
+      txHash:
+        "0x1010101010101010101010101010101010101010101010101010101010101010",
+      blockNumber: 701001,
+      createdAt: "2026-08-15T09:10:00.000Z",
+    },
+    {
+      id: "tx-recipients-set",
+      transactionType: "RecipientsSet",
+      walletAddress: "0x953500000000000000000000000000000000f6eb",
+      txHash:
+        "0x2020202020202020202020202020202020202020202020202020202020202020",
+      blockNumber: 701015,
+      createdAt: "2026-08-15T09:25:00.000Z",
+    },
+    {
+      id: "tx-award-funded",
+      transactionType: "AwardFunded",
+      walletAddress: "0x953500000000000000000000000000000000f6eb",
+      txHash:
+        "0x3030303030303030303030303030303030303030303030303030303030303030",
+      blockNumber: 701022,
+      createdAt: "2026-08-15T09:40:00.000Z",
+    },
+    {
+      id: "tx-award-finalized",
+      transactionType: "AwardFinalized",
+      walletAddress: "0x953500000000000000000000000000000000f6eb",
+      txHash:
+        "0x4040404040404040404040404040404040404040404040404040404040404040",
+      blockNumber: 701030,
+      createdAt: "2026-08-15T10:00:00.000Z",
+    },
+    {
+      id: "tx-award-claimed",
+      transactionType: "AwardClaimed",
+      walletAddress: "0x3333333333333333333333333333333333333333",
+      txHash:
+        "0x5050505050505050505050505050505050505050505050505050505050505050",
+      blockNumber: 701140,
+      createdAt: "2026-08-17T05:30:00.000Z",
+    },
+  ],
+  claimStats: {
+    recipientCount: 3,
+    claimedCount: 1,
+  },
+  createdAt: "2026-08-15T09:00:00.000Z",
+  updatedAt: "2026-08-17T05:30:00.000Z",
+};
+
+const mockAwardBlockDetails: Record<string, AwardBlockDetail> = {
+  "award-1": mockUniportAwardBlockDetail,
+  "mock-award-uniport-grand-prize": mockUniportAwardBlockDetail,
+};
+
+export function getMockAwardBlockDetail(
+  awardId: string | null,
+): AwardBlockDetail | null {
+  if (!awardId) return null;
+
+  return mockAwardBlockDetails[awardId] ?? null;
+}
 export function renderAwardDetailPage(awardId: string | null = null): string {
   return `
     <main class="page-shell award-detail-page">
@@ -156,6 +303,16 @@ export async function mountAwardDetailPage(
     );
     mountAwardOnchainActions(content);
   } catch {
+    const mockAwardBlock = getMockAwardBlockDetail(awardId);
+
+    if (mockAwardBlock) {
+      content.innerHTML = renderAwardDetailContent(
+        mapAwardBlockDetailToViewModel(mockAwardBlock),
+      );
+      mountAwardOnchainActions(content);
+      return;
+    }
+
     content.innerHTML = renderAwardDetailError();
   }
 }

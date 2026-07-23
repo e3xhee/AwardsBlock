@@ -1,4 +1,5 @@
 import {
+  getMockAwardBlockDetail,
   mapAwardBlockDetailToViewModel,
   renderAwardDetailContent,
   renderAwardDetailPage,
@@ -211,4 +212,42 @@ if (!awardDetailHtml.includes("\ud074\ub808\uc784 \ud2b8\ub79c\uc7ad\uc158")) {
 
 if (awardDetailHtml.includes("\ud074\ub808\uc784 tx")) {
   throw new Error("Expected award detail not to expose abbreviated tx label");
+}
+
+const mockAwardDetail = getMockAwardBlockDetail("award-1");
+
+if (!mockAwardDetail) {
+  throw new Error("Expected mock award detail for home award block");
+}
+
+const mockAwardViewModel = mapAwardBlockDetailToViewModel(mockAwardDetail);
+
+if (mockAwardViewModel.eventName !== "De-Buthon 2026") {
+  throw new Error("Expected mock detail to keep the clicked event context");
+}
+
+if (mockAwardViewModel.projectName !== "Uniport") {
+  throw new Error("Expected mock detail to show the Uniport project");
+}
+
+if (mockAwardViewModel.members.length < 3) {
+  throw new Error("Expected mock detail to include team recipients");
+}
+
+if (mockAwardViewModel.transactions.length < 4) {
+  throw new Error("Expected mock detail to include lifecycle transactions");
+}
+
+const mockAwardHtml = renderAwardDetailContent(mockAwardViewModel);
+
+if (!mockAwardHtml.includes("Uniport Team")) {
+  throw new Error("Expected mock award detail to render recipient names");
+}
+
+if (!mockAwardHtml.includes("0xawardblock2026uniportmetadata")) {
+  throw new Error("Expected mock award detail to render metadata hash");
+}
+
+if (getMockAwardBlockDetail("unknown-award") !== null) {
+  throw new Error("Expected unknown award ids not to return mock detail");
 }
